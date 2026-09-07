@@ -1,0 +1,22 @@
+# ---- Zephyr / CMake 编译产物 ----
+cmake-build-*/
+build/
+zephyr/
+*.elf
+*.bin
+*.hex
+*.map
+
+# ---- IDE / 编辑器 ----
+.vscode/
+.idea/
+.clangd
+*.user
+*.swp
+
+# ---- Claude / 本地 agent 配置与记录 ----
+.claude/
+
+# ---- OS ----
+Thumbs.db
+.DS_Store
