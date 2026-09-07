@@ -15,10 +15,10 @@ project(car_2026)
 
 target_sources(app PRIVATE
     src/main.c
-    # src/menu/menu_input.c
-    # src/menu/menu.c
-    # src/menu/OLED_Menu.c
-    # src/menu/font.c
+    src/menu/menu_input.c
+    src/menu/menu.c
+    src/menu/OLED_Menu.c
+    src/menu/font.c
     # src/ano/ano_true.c
     # src/ano/ano_base.c
     # src/ano/ano_board_init.c
@@ -30,10 +30,10 @@ target_sources(app PRIVATE
     # src/my_ring/my_ring.c
     # src/mpu6050/mpu6050.c
     # src/mpu6050/euler.c
-    # src/mess/value_to_str.c
+    src/mess/value_to_str.c
     # src/encode/encode.c
-    # src/motor/tb6612.c
-    # src/key/key.c
+    src/motor/tb6612.c
+    src/key/key.c
     # src/simulink/ARMCortex-M/blinky/blinky.c
     # src/simulink/ARMCortex-M/blinky/rtmodel.c
     # src/simulink/ARMCortex-M/blinky/blinky_data.c
@@ -43,7 +43,7 @@ target_sources(app PRIVATE
 
 target_include_directories(app PRIVATE
     src
-    # src/menu
+    src/menu
     # src/ano
     # src/ano/ano_device
     # src/uart
@@ -51,8 +51,8 @@ target_include_directories(app PRIVATE
     # src/mpu6050
     # src/mess
     # src/encode
-    # src/motor
-    # src/key
+    src/motor
+    src/key
     # src/simulink/ARMCortex-M/blinky
     # src/debug
 )
