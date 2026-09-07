@@ -23,10 +23,10 @@ target_sources(app PRIVATE
     # src/ano/ano_base.c
     # src/ano/ano_board_init.c
     # src/ano/ano_device/ano_device_com.c
-    # src/uart/uart_base.c
-    # src/uart/uart_it.c
+    src/uart/uart_base.c
+    src/uart/uart_true.c
     # src/uart/uart_dma.c
-    # src/uart/uart_board_init.c
+    src/uart/uart_board_init.c
     # src/my_ring/my_ring.c
     src/mpu6050/mpu6050.c
     src/mpu6050/euler.c
@@ -46,7 +46,7 @@ target_include_directories(app PRIVATE
     src/menu
     # src/ano
     # src/ano/ano_device
-    # src/uart
+    src/uart
     # src/my_ring
     src/mpu6050
     src/mess
