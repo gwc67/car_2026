@@ -2,14 +2,12 @@
 #include "menu/menu.h"
 #include "motor/tb6612.h"
 #include "uart/uart_base.h"
+#include "uart/uarts.h"
 #include "zephyr/device.h"
 #include "zephyr/drivers/gpio.h"
 #include "zephyr/kernel.h"
-#include "zephyr/syscalls/kernel.h"
-#include "zephyr/syscalls/uart.h"
 #include <stdint.h>
 #include <stdio.h>
-#include "src\uart\uarts.h"
 
 K_MSGQ_DEFINE(uart_tx_queue, sizeof(struct uart_event_t), 30,4);
 K_MSGQ_DEFINE(uart_rx_queue, sizeof(struct uart_event_t), 30,4);
@@ -72,11 +70,10 @@ void s_task_rx(void* p1,void* p2,void *p3)
 }
 
 
-typedef  int (*uart_callback_t)(uint8_t* data,uint32_t len32,void* user_data);
-
 int test_callback(uint8_t*data,uint32_t len32,void* user_data)
 {
     uart_transmit(g_uart_computer, data, len32);
+    return 0;
 }
 
 int main(void)

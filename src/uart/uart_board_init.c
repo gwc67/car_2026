@@ -6,8 +6,8 @@
 
 #define RING_TX_LEN 512
 #define RING_RX_LEN 512
-#define TX_LEN 100
-#define RX_LEN 100
+#define TX_LEN 1
+#define RX_LEN 1
 
 static struct uart_device_t s_uart_computer;
 static uint8_t s_com_ring_rx[RING_RX_LEN];

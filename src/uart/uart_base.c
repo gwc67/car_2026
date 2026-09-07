@@ -31,7 +31,7 @@ int uart_receive_enable(uart_base_t* me)
 //     return  me->ops->uart_rx_isr(me,len32);
 // }
 
-int uart_register_callback(uart_base_t* me,uart_callback_t callback,void* user_data)
+int uart_register_callback(uart_base_t* me,uart_user_cb_t callback,void* user_data)
 {
     CHECKIF(!me || !me->ops->uart_register_callback)
     {

@@ -23,14 +23,14 @@ static int s_uart_tx_it(struct uart_base_t* base,uint8_t *data,uint32_t len32)
 
 //这个应该是一个释放消息的，并没有改变什么东西，需要改变串口是否忙的状态，那不是要又要创建一个接口吗？我认为多余了
 //可以学习，在写一个uart_tx_event的自带封装即可
-static  int s_uart_tx_isr_it(struct uart_base_t *base)
-{
-    struct uart_event_t event = {
-        .base = base,
-        .type_e = UART_EVENT_TX_DONE,
-    };
-    return k_msgq_put(&uart_tx_queue,&event,K_NO_WAIT);
-}
+// static  int s_uart_tx_isr_it(struct uart_base_t *base)
+// {
+//     struct uart_event_t event = {
+//         .base = base,
+//         .type_e = UART_EVENT_TX_DONE,
+//     };
+//     return k_msgq_put(&uart_tx_queue,&event,K_NO_WAIT);
+// }
 
 //为了解决共享线程中，无法进行tx_busy标志位的判断
 //tx_busy 主要解决 刚调用HAL_Transmit_it传输数据，数据还没发送完，系统再次调用 HAL_Transmit_it产生的覆盖问题
@@ -84,7 +84,7 @@ static int s_uart_rx_analyze(uart_base_t* base)
     return 0;
 }    
     
-static int s_uart_callback_register(uart_base_t* base,uart_callback_t callback,void* user_data)
+static int s_uart_callback_register(uart_base_t* base,uart_user_cb_t callback,void* user_data)
 {
     struct uart_device_t* me = CONTAINER_OF(base, struct uart_device_t, base);  
     me->user_data = user_data;
@@ -125,7 +125,7 @@ static void s_uart_isr(const struct device *dev, void *user_data)
         .base = &me->base,
         .type_e = UART_EVENT_RX_DATA,
     };
-    k_msgq_put(&uart_tx_queue, &event, K_NO_WAIT);
+    k_msgq_put(&uart_rx_queue, &event, K_NO_WAIT);
     
     }
 }
