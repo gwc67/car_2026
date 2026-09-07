@@ -14,7 +14,7 @@
 #include <stdio.h>
 #include <zephyr/device.h>
 #include <zephyr/display/cfb.h>
-
+#include "encode.h"
 /* OLED 设备 (与 menu.c 共用同一个) */
 static const struct device *s_oled_pst =
     DEVICE_DT_GET(DT_NODELABEL(ssd1306));
@@ -125,36 +125,36 @@ struct menu_base_t* g_mpu6050_raw_oled_pst;
 static struct menu_node_t g_mpu6050_euler_st;
 struct menu_base_t* g_mpu6050_euler_oled_pst;
 
-// static void s_draw_encoder(struct menu_node_t* self)
-// {
-//     char num[10];   /* 放数值 */
-//     char buf[32];   /* 放最终结果 */
-//     cfb_framebuffer_set_font(s_oled_pst, 1);
-//     cfb_print(s_oled_pst, self->base.name, 0, 0);
-//     cfb_framebuffer_set_font(s_oled_pst, 0);
+static void s_draw_encoder(struct menu_node_t* self)
+{
+    char num[10];   /* 放数值 */
+    char buf[32];   /* 放最终结果 */
+    cfb_framebuffer_set_font(s_oled_pst, 1);
+    cfb_print(s_oled_pst, self->base.name, 0, 0);
+    cfb_framebuffer_set_font(s_oled_pst, 0);
 
-//     struct encoder_data_t encoder_data_a_st = {0};
-//     struct encoder_data_t encoder_data_b_st = {0};
-//     encoder_get_data(g_encoder_a_pst,&encoder_data_a_st);
-//     encoder_get_data(g_encoder_b_pst,&encoder_data_b_st);
+    struct encoder_data_t encoder_data_a_st = {0};
+    struct encoder_data_t encoder_data_b_st = {0};
+    encoder_get_data(g_encoder_a_pst,&encoder_data_a_st);
+    encoder_get_data(g_encoder_b_pst,&encoder_data_b_st);
     
     
 
-//     float_to_str(num, sizeof(num), encoder_data_a_st.rpm_f, 2);
-//     snprintf(buf, sizeof(buf), "v_a:%s",num);   /* ✅ num 和 buf 分开 */
-//     cfb_print(s_oled_pst, buf, 0, 20);
+    float_to_str(num, sizeof(num), encoder_data_a_st.rpm_f, 2);
+    snprintf(buf, sizeof(buf), "v_a:%s",num);   /* ✅ num 和 buf 分开 */
+    cfb_print(s_oled_pst, buf, 0, 20);
 
-//     snprintf(buf, sizeof(buf), "p_a:%d", encoder_data_a_st.position_l);   /* ✅ num 和 buf 分开 */
-//     cfb_print(s_oled_pst, buf, 64, 20);
+    snprintf(buf, sizeof(buf), "p_a:%d", encoder_data_a_st.position_l);   /* ✅ num 和 buf 分开 */
+    cfb_print(s_oled_pst, buf, 64, 20);
 
-//     float_to_str(num, sizeof(num), encoder_data_b_st.rpm_f, 2);
-//     snprintf(buf, sizeof(buf), "v_b:%s",num );   /* ✅ num 和 buf 分开 */
-//     cfb_print(s_oled_pst, buf, 0, 30);
+    float_to_str(num, sizeof(num), encoder_data_b_st.rpm_f, 2);
+    snprintf(buf, sizeof(buf), "v_b:%s",num );   /* ✅ num 和 buf 分开 */
+    cfb_print(s_oled_pst, buf, 0, 30);
 
-//     snprintf(buf, sizeof(buf), "p_b:%d", encoder_data_b_st.position_l);   /* ✅ num 和 buf 分开 */
-//     cfb_print(s_oled_pst, buf, 64, 30);
+    snprintf(buf, sizeof(buf), "p_b:%d", encoder_data_b_st.position_l);   /* ✅ num 和 buf 分开 */
+    cfb_print(s_oled_pst, buf, 64, 30);
     
-// }
+}
 static struct menu_node_t g_encode_st;
 struct menu_base_t* g_encode_oled_pst;
 /* ================================================================
@@ -167,7 +167,7 @@ static int s_build_menu_tree(void)
     Create_Menu_Folder(&g_root, s_simulink_st, "simulink");
     // g_mpu6050_raw_oled_pst = Create_Menu_Leaf(&g_root,g_mpu6050_raw_st, "mpu6050", s_draw_mpu6050);
     // g_mpu6050_euler_oled_pst =  Create_Menu_Leaf(&g_root,g_mpu6050_euler_st, "euler", s_draw_euler);
-    // g_encode_oled_pst =  Create_Menu_Leaf(&s_simulink_st,g_encode_st, "encoder", s_draw_encoder);
+    g_encode_oled_pst =  Create_Menu_Leaf(&s_simulink_st,g_encode_st, "encoder", s_draw_encoder);
     
     // Create_Menu_Leaf_Range(&s_simulink_st, s_speed_a_st,
     //                        "speed_a", s_draw_speed_a,

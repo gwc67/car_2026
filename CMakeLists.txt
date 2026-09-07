@@ -28,10 +28,10 @@ target_sources(app PRIVATE
     # src/uart/uart_dma.c
     # src/uart/uart_board_init.c
     # src/my_ring/my_ring.c
-    # src/mpu6050/mpu6050.c
-    # src/mpu6050/euler.c
+    src/mpu6050/mpu6050.c
+    src/mpu6050/euler.c
     src/mess/value_to_str.c
-    # src/encode/encode.c
+    src/encode/encode.c
     src/motor/tb6612.c
     src/key/key.c
     # src/simulink/ARMCortex-M/blinky/blinky.c
@@ -48,11 +48,11 @@ target_include_directories(app PRIVATE
     # src/ano/ano_device
     # src/uart
     # src/my_ring
-    # src/mpu6050
-    # src/mess
-    # src/encode
+    src/mpu6050
+    src/mess
+    src/encode
     src/motor
     src/key
     # src/simulink/ARMCortex-M/blinky
-    # src/debug
+    src/debug
 )
