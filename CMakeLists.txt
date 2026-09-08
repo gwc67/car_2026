@@ -10,6 +10,9 @@ get_filename_component(BOARD_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
 # 这里手动把 hal_stm32 模块的 dts 根注册进 DTS_ROOT, 让 pinctrl 定义可见.
 list(APPEND DTS_ROOT "$ENV{ZEPHYR_BASE}/../modules/hal/stm32")
 
+# 显式指定应用级 DTS overlay (添加 USART2 DMA 配置)
+set(EXTRA_DTC_OVERLAY_FILE ${CMAKE_CURRENT_SOURCE_DIR}/boards/stm32f407_balance_car.overlay)
+
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(car_2026)
 

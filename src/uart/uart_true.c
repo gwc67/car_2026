@@ -3,7 +3,6 @@
 #include "zephyr/drivers/uart.h"
 #include "zephyr/kernel.h"
 #include "zephyr/sys/ring_buffer.h"
-#include "zephyr/syscalls/uart.h"
 #include "zephyr/toolchain.h"
 #include <stdbool.h>
 #include <stdint.h>
@@ -17,9 +16,10 @@ static int s_uart_tx_it(struct uart_base_t* base,uint8_t *data,uint32_t len32)
     struct uart_device_t *me = CONTAINER_OF(base, struct uart_device_t, base); 
     ring_buf_put(&me->tx_ring, data, len32);
     if (!me->is_busy_b) {
-    me->is_busy_b = true;
-    uart_irq_tx_enable(me->uart_device);
-   }
+        me->is_busy_b = true;
+        uart_irq_tx_enable(me->uart_device);
+    }
+    return 0;
 }
 
 //通过引入不同的回调，可以对it，和dma产生只需要一次启动即可，就像zephyr一样
@@ -55,12 +55,7 @@ static int s_uart_callback_register(uart_base_t* base,uart_user_cb_t callback,vo
     me->callback = callback;
     return 0;
 }
-const uart_ops_t uart_ops_it = {
-    .uart_rx_enable = s_uart_rx_enalbe_it,
-    .uart_transmit = s_uart_tx_it,
-    .uart_register_callback = s_uart_callback_register,
-    .uart_rx_analyze = s_uart_rx_analyze,
-};
+
 
 
 //这里和当时stm32裸机freertos最大的不同就是，zephyr中不能开启，串口空闲中断（stm32独特）
@@ -104,26 +99,7 @@ static void s_uart_isr(const struct device *dev, void *user_data)
 }
 
 
-int uart_it_init(struct uart_device_t* me,const struct uart_cfg_t* cfg, const char *name)
-{
-    if (!me || !cfg->rx_data || !cfg->tx_data || !cfg->rx_ring_data || !cfg->tx_ring_data) {
-        return -EINVAL;
-    }
-    me->base.name = name;
-    me->base.ops = &uart_ops_it;
-    me->uart_device = cfg->uart_device;
-    
-    ring_buf_init(&me->rx_ring,cfg->rx_ring_len32,cfg->rx_ring_data);
-    ring_buf_init(&me->tx_ring,cfg->tx_ring_len32,cfg->tx_ring_data);
 
-    me->rx_data = cfg->rx_data;
-    me->tx_data = cfg->tx_data;
-
-    me->tx_len32 = cfg->tx_len32;
-    me->rx_len32 = cfg->rx_len32;
-
-    return uart_irq_callback_user_data_set(me->uart_device, s_uart_isr,me);
-}
 
 static int s_uart_tx_dma(uart_base_t* base,uint8_t* data ,uint32_t len32)
 {
@@ -133,19 +109,20 @@ static int s_uart_tx_dma(uart_base_t* base,uint8_t* data ,uint32_t len32)
     }
 
     ring_buf_put(&me->tx_ring, data, len32);
-    
+
     if (!me->is_busy_b) {
         me->is_busy_b = true;
 
-        int32_t len = ring_buf_get(&me->tx_ring,me->tx_data,me->tx_len32);
+        int32_t len = ring_buf_get(&me->tx_ring, me->tx_data, me->tx_len32);
         int ret = uart_tx(me->uart_device, me->tx_data, len, SYS_FOREVER_US);
 
         if (ret != 0) {
-            //启动失败
             me->is_busy_b = false;
             return -EIO;
         }
     }
+    // 如果 is_busy_b == true，DMA 正在发送，数据已存入 ring buffer
+    // 等 UART_TX_DONE 时 uart_isr_dma 会取 ring buffer 继续发
     
     return 0;
 }
@@ -166,7 +143,7 @@ static int s_uart_rx_enable_dma(uart_base_t* base,uint32_t timeout_ul)
     return 0;
 }
 
-static void uart_isr_dma(const struct device* dev,struct uart_event* evt,void* user_data)
+static void s_uart_isr_dma(const struct device* dev,struct uart_event* evt,void* user_data)
 {
     struct uart_device_t *me = (struct uart_device_t* )user_data;
     
@@ -190,7 +167,7 @@ static void uart_isr_dma(const struct device* dev,struct uart_event* evt,void* u
             me->is_busy_b = false;
             break;
         case UART_RX_RDY:
-            ring_buf_put(&me->tx_ring, &evt->data.rx.buf[evt->data.rx.offset], evt->data.rx.len);
+            ring_buf_put(&me->rx_ring, &evt->data.rx.buf[evt->data.rx.offset], evt->data.rx.len);
             struct uart_event_t event = {
                 .base = &me->base,
                 .type_e = UART_EVENT_RX_DATA,
@@ -207,12 +184,40 @@ static void uart_isr_dma(const struct device* dev,struct uart_event* evt,void* u
     }
 }
 
+const uart_ops_t uart_ops_it = {
+    .uart_rx_enable = s_uart_rx_enalbe_it,
+    .uart_transmit = s_uart_tx_it,
+    .uart_register_callback = s_uart_callback_register,
+    .uart_rx_analyze = s_uart_rx_analyze,
+};
+
 static const uart_ops_t uart_ops_dma = {
     .uart_transmit = s_uart_tx_dma,
     .uart_rx_enable = s_uart_rx_enable_dma,
-    .uart_register_callback = uart_register_callback,
-    .uart_rx_analyze = uart_rx_analyze,
+    .uart_register_callback = s_uart_callback_register,   // 使用static本地函数，避免名字冲突导致递归
+    .uart_rx_analyze = s_uart_rx_analyze,                 // 同上，复用已有的static函数
 };
+
+int uart_it_init(struct uart_device_t* me,const struct uart_cfg_t* cfg, const char *name)
+{
+    if (!me || !cfg->rx_data || !cfg->tx_data || !cfg->rx_ring_data || !cfg->tx_ring_data) {
+        return -EINVAL;
+    }
+    me->base.name = name;
+    me->base.ops = &uart_ops_it;
+    me->uart_device = cfg->uart_device;
+    
+    ring_buf_init(&me->rx_ring,cfg->rx_ring_len32,cfg->rx_ring_data);
+    ring_buf_init(&me->tx_ring,cfg->tx_ring_len32,cfg->tx_ring_data);
+
+    me->rx_data = cfg->rx_data;
+    me->tx_data = cfg->tx_data;
+
+    me->tx_len32 = cfg->tx_len32;
+    me->rx_len32 = cfg->rx_len32;
+
+    return uart_irq_callback_user_data_set(me->uart_device, s_uart_isr,me);
+}
 
 int uart_dma_init(struct uart_device_t* me,const struct uart_cfg_t* cfg, const char *name)
 {
@@ -232,5 +237,5 @@ int uart_dma_init(struct uart_device_t* me,const struct uart_cfg_t* cfg, const c
     me->tx_len32 = cfg->tx_len32;
     me->rx_len32 = cfg->rx_len32;
     
-    return uart_callback_set(me->uart_device, uart_isr_dma,me);
+    return uart_callback_set(me->uart_device, s_uart_isr_dma,me);
 }
