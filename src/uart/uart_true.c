@@ -1,7 +1,9 @@
 #include "uart_true.h"
 #include "zephyr/drivers/uart.h"
 #include "zephyr/kernel.h"
-#include "zephyr/syscalls/kernel.h"
+#include "zephyr/sys/ring_buffer.h"
+#include "zephyr/syscalls/uart.h"
+#include <stdbool.h>
 #include <stdint.h>
 
 extern struct k_msgq uart_tx_queue;   // 引用 main.c 中的队列
@@ -9,55 +11,13 @@ extern struct k_msgq uart_rx_queue;   // 引用 main.c 中的队列
 
 static int s_uart_tx_it(struct uart_base_t* base,uint8_t *data,uint32_t len32)
 {
-    struct uart_device_t *me = CONTAINER_OF(base, struct uart_device_t, base);
-    
+    struct uart_device_t *me = CONTAINER_OF(base, struct uart_device_t, base); 
     ring_buf_put(&me->tx_ring, data, len32);
-    
-    struct uart_event_t event = {
-        .base = base,
-        .type_e = UART_EVENT_TX_REQ,
-    };
-    return k_msgq_put(&uart_tx_queue,&event,K_NO_WAIT);
+    if (!me->is_busy_b) {
+    me->is_busy_b = true;
+    uart_irq_tx_enable(me->uart_device);
+   }
 }
-
-
-//这个应该是一个释放消息的，并没有改变什么东西，需要改变串口是否忙的状态，那不是要又要创建一个接口吗？我认为多余了
-//可以学习，在写一个uart_tx_event的自带封装即可
-// static  int s_uart_tx_isr_it(struct uart_base_t *base)
-// {
-//     struct uart_event_t event = {
-//         .base = base,
-//         .type_e = UART_EVENT_TX_DONE,
-//     };
-//     return k_msgq_put(&uart_tx_queue,&event,K_NO_WAIT);
-// }
-
-//为了解决共享线程中，无法进行tx_busy标志位的判断
-//tx_busy 主要解决 刚调用HAL_Transmit_it传输数据，数据还没发送完，系统再次调用 HAL_Transmit_it产生的覆盖问题
-//tx_busy 主要约束 EVENT_REQ事件
-static int s_uart_tx_callback(struct uart_base_t* base,enum uart_event_type_e event)
-{
-    struct uart_device_t* me = CONTAINER_OF(base, struct uart_device_t, base);
-
-    // 需要启动发送的条件：
-    // 1. 收到 TX_REQ 且当前不忙
-    // 2. 收到 TX_DONE 且发送缓冲区非空（继续发送下一段数据）
-    if ((event == UART_EVENT_TX_REQ && !me->is_busy_b) ||
-        (event == UART_EVENT_TX_DONE && !ring_buf_is_empty(&me->tx_ring)))
-    {
-      uint32_t len = ring_buf_get(&me->tx_ring, me->tx_data, me->tx_len32);
-      uart_fifo_fill(me->uart_device, me->tx_data, len);
-      // HAL_UART_Transmit_IT(me->uart_handle, me->tx_data, len);
-      me->is_busy_b = true;
-    }
-    // TX_DONE 且缓冲区为空：表示所有数据发送完毕，清除忙标志
-    else if (event == UART_EVENT_TX_DONE) {
-      me->is_busy_b = false;
-      uart_irq_tx_disable(me->uart_device);
-    }
-    return 0;
-}
-
 
 //通过引入不同的回调，可以对it，和dma产生只需要一次启动即可，就像zephyr一样
 static int s_uart_rx_enalbe_it(struct uart_base_t* base)
@@ -96,10 +56,11 @@ const uart_ops_t uart_ops_it = {
     .uart_transmit = s_uart_tx_it,
     .uart_register_callback = s_uart_callback_register,
     .uart_rx_analyze = s_uart_rx_analyze,
-    .uart_tx_callback = s_uart_tx_callback,
 };
 
 
+//这里和当时stm32裸机freertos最大的不同就是，zephyr中不能开启，串口空闲中断（stm32独特）
+//因此不好设置事件驱动线程，只能将整个中断回调作为tx_callback了
 static void s_uart_isr(const struct device *dev, void *user_data)
 {
      struct uart_device_t* me = (struct uart_device_t* )user_data;
@@ -108,25 +69,33 @@ static void s_uart_isr(const struct device *dev, void *user_data)
 
     if(uart_irq_tx_ready(dev))
     {
-      struct uart_event_t event = {
-          .base = &me->base,
-          .type_e = UART_EVENT_TX_DONE,
-      };
-      k_msgq_put(&uart_tx_queue, &event, K_NO_WAIT);
+      /* 发一次 TX_DONE 后立即关闭 TX 中断, 防止在 FIFO 有空间期间
+       * ISR 被反复触发把 uart_tx_queue 刷满.
+       * 线程处理完 TX_DONE 后若 ring_buf 还有数据会再 uart_irq_tx_enable(). */
+      uint8_t byte;
+      if (ring_buf_get(&me->tx_ring, &byte, 1) == 1) {
+        uart_fifo_fill(dev, &byte, 1);
+      } 
+      else {
+        uart_irq_tx_disable(dev);
+        me->is_busy_b = false;
+      }
     }
 
-    //使用初始化注册的时候使用rx_len32 = 1;只用注册一个byte即可
     if (uart_irq_rx_ready(dev)) {
-    while (uart_fifo_read(dev, me->rx_data, me->rx_len32)) {
-        ring_buf_put(&me->rx_ring, me->rx_data,me->rx_len32);
-    } 
+      int len;
+      while ((len = uart_fifo_read(dev, me->rx_data, me->rx_len32)) > 0) {
+        /* 只写入实际读取的字节数, 避免写入垃圾数据导致 ring buffer 损坏 */
+        if (ring_buf_put(&me->rx_ring, me->rx_data, len) != len) {
+          break;
+        }
+      }
 
-    struct uart_event_t event = {
-        .base = &me->base,
-        .type_e = UART_EVENT_RX_DATA,
-    };
-    k_msgq_put(&uart_rx_queue, &event, K_NO_WAIT);
-    
+      struct uart_event_t event = {
+          .base = &me->base,
+          .type_e = UART_EVENT_RX_DATA,
+      };
+      k_msgq_put(&uart_rx_queue, &event, K_NO_WAIT);
     }
 }
 

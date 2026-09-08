@@ -3,7 +3,6 @@
 #include <stdint.h>
 #include <sys/errno.h>
 
-
 int uart_transmit(uart_base_t* me,uint8_t* data ,uint32_t len32)
 {
     CHECKIF(!me || !me->ops->uart_transmit)
@@ -22,15 +21,6 @@ int uart_receive_enable(uart_base_t* me)
     }
     return  me->ops->uart_rx_enable(me);
 }
-// int uart_rx_isr(uart_base_t* me,uint32_t len32)
-// {
-//     CHECKIF(!me || !me->ops->uart_rx_isr)
-//     {
-//         return  -EINVAL;
-//     }
-//     return  me->ops->uart_rx_isr(me,len32);
-// }
-
 int uart_register_callback(uart_base_t* me,uart_user_cb_t callback,void* user_data)
 {
     CHECKIF(!me || !me->ops->uart_register_callback)
@@ -48,22 +38,3 @@ int uart_rx_analyze(uart_base_t*me)
     }
     return  me->ops->uart_rx_analyze(me);
 }
-
-
-int uart_tx_callback(struct uart_base_t* me,enum uart_event_type_e event)
-{
-    CHECKIF(!me || !me->ops->uart_tx_callback)
-    {
-        return -EINVAL;
-    }
-    return  me->ops->uart_tx_callback(me,event);
-}
-
-// int uart_tx_isr(struct uart_base_t *me)
-// {
-//     CHECKIF(!me || !me->ops->uart_tx_isr)
-//     {
-//         return -EINVAL;
-//     }
-//     return  me->ops->uart_tx_isr(me);
-// }
