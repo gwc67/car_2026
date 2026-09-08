@@ -33,7 +33,7 @@ int uart_board_init(void)
         .rx_len32 = RX_LEN,
         .rx_ring_len32 = RING_RX_LEN,
     };
-    int ret = uart_dma_init(&s_uart_computer, &com_cfg, "uart_computer");
+    int ret = uart_it_init(&s_uart_computer, &com_cfg, "uart_computer");
     if (ret) {
         return ret;
     }

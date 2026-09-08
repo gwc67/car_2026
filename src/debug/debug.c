@@ -15,44 +15,29 @@ static void  dispatch_line(char* line_pc);
 // static const struct gpio_dt_spec led_motor_st =GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
 
 //但是现在我没办法保证是一口气就能获得完整字节啊
+//只能这样了，需要数据必须含义\r\n才能保证s_lie_pos被清零，否则得输入两次
 int debug_par_check(uint8_t* data,uint32_t len32,void* user_data)
 {
     static char s_line_buf[LINE_BUF_SIZE];       
-    uint8_t lie_pos = 0;
+    static uint8_t s_lie_pos = 0;
 
     for (int i = 0; i < len32; i++) {
         if (data[i] == '\n' || data[i] == '\r') {
-            if (lie_pos > 0) {
-                s_line_buf[lie_pos] = '\0';
+            if (s_lie_pos > 0) {
+                s_line_buf[s_lie_pos] = '\0';
                 dispatch_line(s_line_buf);
-                lie_pos = 0;
+                s_lie_pos = 0;
             }
             continue;
         }
-        if (lie_pos < LINE_BUF_SIZE - 1) {
-            s_line_buf[lie_pos++] = (char)data[i];
+        if (s_lie_pos < LINE_BUF_SIZE - 1) {
+            s_line_buf[s_lie_pos++] = (char)data[i];
         }
         else {
-            lie_pos = 0;
+            s_lie_pos = 0;
         }
     }
-    
-    // while (!g_ut2_rx_ring_pst)) {
-    //     my_ring_buf_get(g_ut2_rx_ring_pst, &byte, 1);
-    //     if (byte == '\n' || byte == '\r') {
-    //         if (lie_pos_uc > 0) {
-    //             s_line_buf_pc[lie_pos_uc] = '\0';
-    //             dispatch_line(s_line_buf_pc);
-    //             lie_pos_uc = 0;
-    //         }
-    //         continue;  // 换行符本身不入缓冲区
-    //     }
-    //     if (lie_pos_uc < LINE_BUF_SIZE - 1) {
-    //         s_line_buf_pc[lie_pos_uc++] = (char)byte;
-    //     } else {
-    //         lie_pos_uc = 0;
-    //     }
-    // }
+    return 0;
 }
 
 
