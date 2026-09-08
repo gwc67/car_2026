@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <sys/_intsup.h>
+#include "car_2026.h"
 #include "tb6612.h"
 #include "uart_base.h"
 #include "uarts.h"
@@ -49,13 +50,25 @@ static void  dispatch_line(char* line_pc)
     str_to_float(line_pc, values_pf, 4);
 
     if (strncmp(line_pc, "turn_tar:", 8) == 0) {
-        int16_t averget_pwm = (int16_t)(values_pf[1] * 25);
-        int16_t turn_pwm = (int16_t)(values_pf[0] * 10);
+        // int16_t averget_pwm = (int16_t)(values_pf[1] * 25);
+        // int16_t turn_pwm = (int16_t)(values_pf[0] * 10);
 
-        motor_set(g_motor_a_pst, averget_pwm - turn_pwm);
-        motor_set(g_motor_b_pst, averget_pwm + turn_pwm);
+        // motor_set(g_motor_a_pst, averget_pwm - turn_pwm);
+        // motor_set(g_motor_b_pst, averget_pwm + turn_pwm);
+
+        car_2026_U.tar_spd_a = values_pf[1];
+        car_2026_U.tar_spd_b = values_pf[1];
         
         uart_transmit(g_uart_computer, "tar_spd_set_success\r\n", 21);
+    }
+    else if (strncmp(line_pc, "spd_kp:", 7) == 0) {
+        SPD_KP = values_pf[0];
+        uart_transmit(g_uart_computer, "spd_kp_set\r\n", 21);
+
+    }
+    else if (strncmp(line_pc, "spd_ki:", 7) == 0) {
+        SPD_KI = values_pf[0];
+        uart_transmit(g_uart_computer, "spd_ki_set\r\n", 21);
     }
 }
 

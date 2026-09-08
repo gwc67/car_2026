@@ -1,5 +1,7 @@
 #include "encode.h"
 #include "menu/menu.h"
+#include "motor/tb6612.h"
+#include "simulink/ARMCortex-M/car_2026/car_2026.h"
 #include "uart/uart_base.h"
 #include "uart/uarts.h"
 #include "zephyr/drivers/counter.h"
@@ -85,6 +87,7 @@ static void s_task_1ms_high(void *p1,void *p2,void *p3)
 {
 	while (1) {
         k_sem_take(&tim5_sem, K_FOREVER);
+        car_2026_step0();
 	}
 }
 
@@ -92,7 +95,18 @@ void s_task_5ms_high(void *p1,void *p2,void *p3 )
 {
     while (1) {
         encoder_update_all();
-        k_sleep(K_MSEC(5));
+
+        struct encoder_data_t motor_a;
+        struct encoder_data_t motor_b;
+
+        encoder_get_data(g_encoder_a_pst, &motor_a);
+        encoder_get_data(g_encoder_b_pst, &motor_b);
+        car_2026_U.motor_a_spd = motor_a.rpm_f;
+        car_2026_U.spd_b = motor_b.rpm_f;
+        car_2026_step1();
+        motor_set(g_motor_a_pst, car_2026_Y.pwm_a);
+        motor_set(g_motor_b_pst, car_2026_Y.pwm_b);
+        k_sleep(K_MSEC(4));
     }
 }
 
@@ -137,8 +151,6 @@ int main(void)
     k_thread_create(&s_thread_20ms_high, s_stack_20ms_high, sizeof(s_stack_20ms_high), s_task_20ms_high, NULL, NULL, NULL, K_PRIO_PREEMPT(10), 0, K_NO_WAIT);
     k_thread_create(&s_thread_task_rx, s_stack_task_rx, sizeof(s_stack_task_rx), s_task_rx, NULL,NULL, NULL, K_PRIO_PREEMPT(3), 0,K_NO_WAIT);
     while (1) {
-        
-        uart_transmit(g_uart_computer,"test\r\n",6);
         k_sleep(K_MSEC(1000));
 	}
 	return 0;

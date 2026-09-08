@@ -9,10 +9,8 @@
 #include <zephyr/device.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
-
+#include "D:\Downloads\zephyr_new\myapp\new\car_2026\src\simulink\ARMCortex-M\car_2026\car_2026.h"
 LOG_MODULE_REGISTER(tb6612, LOG_LEVEL_INF);
-
-volatile uint8_t  running_flag = 0;
 
 
 static const struct gpio_dt_spec led_motor_st =GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
@@ -24,17 +22,8 @@ static void motor_key_callback(enum key_id_e key_id_em,enum key_event_e event_em
         case KEY_0_em:
         {
             if (event_em == KEY_EVENT_DOUBLE_em) {
-                 running_flag ^= 1;
-                //  rtU.running_flag_2 ^= 1;   
-                if (running_flag) {
-                    motor_set(g_motor_a_pst, 500);
-                    motor_set(g_motor_b_pst, 500);
-                }
-                else {
-                motor_set(g_motor_a_pst, 0);
-                motor_set(g_motor_b_pst, 0);
-                }
-                gpio_pin_set_dt(&led_motor_st,running_flag);
+                car_2026_U.running_flag  ^= 1;
+                gpio_pin_set_dt(&led_motor_st,car_2026_U.running_flag);
             }
         }
         break; 

@@ -36,9 +36,9 @@ target_sources(app PRIVATE
     src/motor/tb6612.c
     src/key/key.c
     src/debug/debug.c
-    # src/simulink/ARMCortex-M/blinky/blinky.c
-    # src/simulink/ARMCortex-M/blinky/rtmodel.c
-    # src/simulink/ARMCortex-M/blinky/blinky_data.c
+    src/simulink/ARMCortex-M/car_2026/car_2026.c
+    src/simulink/ARMCortex-M/car_2026/rt_nonfinite.c
+    # src/simulink/ARMCortex-M/car_2026/blinky_data.c
     
 )
 
@@ -53,6 +53,6 @@ target_include_directories(app PRIVATE
     src/encode
     src/motor
     src/key
-    # src/simulink/ARMCortex-M/blinky
+    src/simulink/ARMCortex-M/car_2026
     src/debug
 )
