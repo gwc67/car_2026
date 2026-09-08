@@ -1,10 +1,7 @@
 #include "encode.h"
 #include "menu/menu.h"
-#include "motor/tb6612.h"
 #include "uart/uart_base.h"
 #include "uart/uarts.h"
-#include "zephyr/device.h"
-#include "zephyr/drivers/gpio.h"
 #include "zephyr/kernel.h"
 #include <stdint.h>
 #include <stdio.h>
@@ -18,7 +15,6 @@ static K_THREAD_STACK_DEFINE(s_stack_task_rx, 4096); /* 1.5KB */
 
 static struct k_thread s_thread_5ms_high;
 static struct k_thread s_thread_20ms_high;
-
 static struct k_thread s_thread_task_rx;
 
 // static const struct gpio_dt_spec led0 = GPIO_DT_SPEC_GET(DT_ALIAS(led0),gpios);

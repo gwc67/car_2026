@@ -13,13 +13,13 @@ int uart_transmit(uart_base_t* me,uint8_t* data ,uint32_t len32)
     return me->ops->uart_transmit(me,data,len32);
 }
 
-int uart_receive_enable(uart_base_t* me)
+int uart_receive_enable(uart_base_t* me,uint32_t timeout)
 {
     CHECKIF(!me || !me->ops->uart_rx_enable)
     {
         return  -EINVAL;
     }
-    return  me->ops->uart_rx_enable(me);
+    return  me->ops->uart_rx_enable(me,timeout);
 }
 int uart_register_callback(uart_base_t* me,uart_user_cb_t callback,void* user_data)
 {

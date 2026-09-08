@@ -1,14 +1,17 @@
 #include "uart_true.h"
+#include "uart_base.h"
 #include "zephyr/drivers/uart.h"
 #include "zephyr/kernel.h"
 #include "zephyr/sys/ring_buffer.h"
 #include "zephyr/syscalls/uart.h"
+#include "zephyr/toolchain.h"
 #include <stdbool.h>
 #include <stdint.h>
+#include <sys/errno.h>
 
-extern struct k_msgq uart_tx_queue;   // 引用 main.c 中的队列
 extern struct k_msgq uart_rx_queue;   // 引用 main.c 中的队列
 
+//因为是一个一个取的其实更本用不到，每次触发中断1字节必定进行运输完成了
 static int s_uart_tx_it(struct uart_base_t* base,uint8_t *data,uint32_t len32)
 {
     struct uart_device_t *me = CONTAINER_OF(base, struct uart_device_t, base); 
@@ -20,9 +23,10 @@ static int s_uart_tx_it(struct uart_base_t* base,uint8_t *data,uint32_t len32)
 }
 
 //通过引入不同的回调，可以对it，和dma产生只需要一次启动即可，就像zephyr一样
-static int s_uart_rx_enalbe_it(struct uart_base_t* base)
+static int s_uart_rx_enalbe_it(struct uart_base_t* base,uint32_t timeout)
 {
     struct uart_device_t* me = CONTAINER_OF(base, struct uart_device_t, base);
+    ARG_UNUSED(timeout);
     uart_irq_rx_enable(me->uart_device);
     return 0;
 }
@@ -121,3 +125,112 @@ int uart_it_init(struct uart_device_t* me,const struct uart_cfg_t* cfg, const ch
     return uart_irq_callback_user_data_set(me->uart_device, s_uart_isr,me);
 }
 
+static int s_uart_tx_dma(uart_base_t* base,uint8_t* data ,uint32_t len32)
+{
+    struct uart_device_t* me = CONTAINER_OF(base, struct uart_device_t, base);
+    if (!me->uart_device || !data || len32 == 0) {
+        return  -EINVAL;
+    }
+
+    ring_buf_put(&me->tx_ring, data, len32);
+    
+    if (!me->is_busy_b) {
+        me->is_busy_b = true;
+
+        int32_t len = ring_buf_get(&me->tx_ring,me->tx_data,me->tx_len32);
+        int ret = uart_tx(me->uart_device, me->tx_data, len, SYS_FOREVER_US);
+
+        if (ret != 0) {
+            //启动失败
+            me->is_busy_b = false;
+            return -EIO;
+        }
+    }
+    
+    return 0;
+}
+
+
+static int s_uart_rx_enable_dma(uart_base_t* base,uint32_t timeout_ul)
+{
+    struct uart_device_t* me = CONTAINER_OF(base, struct uart_device_t, base);
+
+    if (!me->uart_device) {
+        return -ENODEV;
+    }
+    int ret = uart_rx_enable(me->uart_device, me->rx_data, me->rx_len32,timeout_ul);
+    if (ret != 0) {
+        return ret;
+    }
+
+    return 0;
+}
+
+static void uart_isr_dma(const struct device* dev,struct uart_event* evt,void* user_data)
+{
+    struct uart_device_t *me = (struct uart_device_t* )user_data;
+    
+    switch (evt->type) {
+        case UART_TX_DONE:
+        //缓冲发送完成，
+            if (!ring_buf_is_empty(&me->tx_ring)) {
+            
+                uint32_t len = ring_buf_get(&me->tx_ring, me->tx_data, me->tx_len32);
+                int ret = uart_tx(dev,me->tx_data,len,SYS_FOREVER_US);
+                if (ret != 0) {
+                    me->is_busy_b = false; //启动失败，标记空闲
+                }
+            }
+            else 
+            {
+                me->is_busy_b = false;      //无后续数据，标记空闲
+            }
+            break;
+        case UART_TX_ABORTED:
+            me->is_busy_b = false;
+            break;
+        case UART_RX_RDY:
+            ring_buf_put(&me->tx_ring, &evt->data.rx.buf[evt->data.rx.offset], evt->data.rx.len);
+            struct uart_event_t event = {
+                .base = &me->base,
+                .type_e = UART_EVENT_RX_DATA,
+            };
+            k_msgq_put(&uart_rx_queue, &event, K_NO_WAIT);
+            break;
+        case UART_RX_BUF_REQUEST:
+            uart_rx_buf_rsp(dev, me->rx_data,me->rx_len32);           //重新以当前rx_hw_buf为起点开启吗？也就是类似之前的重新开启it吗？
+            break;
+        case UART_RX_BUF_RELEASED:                                                   //IT模式下的释放不需要干任何事情
+            break;
+        default:
+            break;
+    }
+}
+
+static const uart_ops_t uart_ops_dma = {
+    .uart_transmit = s_uart_tx_dma,
+    .uart_rx_enable = s_uart_rx_enable_dma,
+    .uart_register_callback = uart_register_callback,
+    .uart_rx_analyze = uart_rx_analyze,
+};
+
+int uart_dma_init(struct uart_device_t* me,const struct uart_cfg_t* cfg, const char *name)
+{
+    if (!me || !cfg) {
+        return  -EINVAL;
+    }
+    me->base.name = name;
+    me->base.ops = &uart_ops_dma;
+    me->uart_device = cfg->uart_device;
+    
+    ring_buf_init(&me->rx_ring,cfg->rx_ring_len32,cfg->rx_ring_data);
+    ring_buf_init(&me->tx_ring,cfg->tx_ring_len32,cfg->tx_ring_data);
+
+    me->rx_data = cfg->rx_data;
+    me->tx_data = cfg->tx_data;
+
+    me->tx_len32 = cfg->tx_len32;
+    me->rx_len32 = cfg->rx_len32;
+    
+    return uart_callback_set(me->uart_device, uart_isr_dma,me);
+}

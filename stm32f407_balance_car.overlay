@@ -1,0 +1,16 @@
+
+#include <arm/armv7-m.dtsi>
+#include <st/f4/stm32f407Xe.dtsi>
+#include <st/f4/stm32f407z(e-g)tx-pinctrl.dtsi>
+
+#include <zephyr/dt-bindings/dma/stm32_dma.h>
+
+&usart2 {
+	pinctrl-0 = <&usart2_tx_pa2 &usart2_rx_pa3>;
+	pinctrl-names = "default";
+	current-speed = <460800>;
+	dmas = <&dma1 6 4 STM32_DMA_PERIPH_TX STM32_DMA_FIFO_FULL>,
+	       <&dma1 5 4 STM32_DMA_PERIPH_RX STM32_DMA_FIFO_FULL>;
+	dma-names = "tx", "rx";
+	status = "okay";
+};
