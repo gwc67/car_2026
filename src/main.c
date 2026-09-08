@@ -120,6 +120,9 @@ void s_task_rx(void* p1,void* p2,void *p3)
 }
 
 
+
+
+
 int test_callback(uint8_t*data,uint32_t len32,void* user_data)
 {
     uart_transmit(g_uart_computer, data, len32);
@@ -133,7 +136,6 @@ int main(void)
     k_thread_create(&s_thread_5ms_high, s_stack_5ms_high, sizeof(s_stack_5ms_high), s_task_5ms_high, NULL, NULL, NULL, K_PRIO_PREEMPT(4), 0, K_NO_WAIT);
     k_thread_create(&s_thread_20ms_high, s_stack_20ms_high, sizeof(s_stack_20ms_high), s_task_20ms_high, NULL, NULL, NULL, K_PRIO_PREEMPT(10), 0, K_NO_WAIT);
     k_thread_create(&s_thread_task_rx, s_stack_task_rx, sizeof(s_stack_task_rx), s_task_rx, NULL,NULL, NULL, K_PRIO_PREEMPT(3), 0,K_NO_WAIT);
-    // uart_register_callback(g_uart_computer,test_callback ,NULL);
     while (1) {
         
         uart_transmit(g_uart_computer,"test\r\n",6);

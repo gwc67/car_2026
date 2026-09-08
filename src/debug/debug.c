@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <sys/_intsup.h>
+#include "tb6612.h"
 #include "uart_base.h"
 #include "uarts.h"
 #include "value_to_str.h"
@@ -47,7 +48,13 @@ static void  dispatch_line(char* line_pc)
     // int16_t values_ps[4] = {0};
     str_to_float(line_pc, values_pf, 4);
 
-    if (strncmp(line_pc, "tar_spd:", 8) == 0) {
+    if (strncmp(line_pc, "turn_tar:", 8) == 0) {
+        int16_t averget_pwm = (int16_t)(values_pf[1] * 25);
+        int16_t turn_pwm = (int16_t)(values_pf[0] * 10);
+
+        motor_set(g_motor_a_pst, averget_pwm - turn_pwm);
+        motor_set(g_motor_b_pst, averget_pwm + turn_pwm);
+        
         uart_transmit(g_uart_computer, "tar_spd_set_success\r\n", 21);
     }
 }
