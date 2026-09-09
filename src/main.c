@@ -7,6 +7,8 @@
 #include "value_to_str.h"
 #include "zephyr/drivers/counter.h"
 #include "zephyr/kernel.h"
+#include "zephyr/posix/sys/stat.h"
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -107,6 +109,7 @@ void s_task_5ms_high(void *p1,void *p2,void *p3 )
         car_2026_U.spd_a = motor_a.rpm_f;
         car_2026_U.spd_b = motor_b.rpm_f;
         car_2026_step1();
+
         motor_set(g_motor_a_pst, car_2026_Y.pwm_a);
         motor_set(g_motor_b_pst, car_2026_Y.pwm_b);
 
@@ -115,26 +118,34 @@ void s_task_5ms_high(void *p1,void *p2,void *p3 )
     }
 }
 
+
+
+#define TELEMETRY_BUF_SIZE (150U)
+#define TELEMETRY_FIELD_SIZE    (10U)
+
+static void format_telemetry(char *buf, size_t buf_size) {
+  char motor_a[TELEMETRY_FIELD_SIZE];
+  char motor_b[TELEMETRY_FIELD_SIZE];
+  char tar_spd_a[TELEMETRY_FIELD_SIZE];
+  char tar_spd_b[TELEMETRY_FIELD_SIZE];
+
+  float_to_str(motor_a, sizeof(motor_a), car_2026_U.spd_a, 2);
+  float_to_str(motor_b, sizeof(motor_b), car_2026_U.spd_b, 2);
+  float_to_str(tar_spd_a, sizeof(tar_spd_a), car_2026_U.tar_spd_a, 2);
+  float_to_str(tar_spd_b, sizeof(tar_spd_b), car_2026_U.tar_spd_b, 2);
+
+  snprintf(buf, buf_size, "%s,%s,%s,%s\r\n", motor_a, motor_b, tar_spd_a,
+           tar_spd_b);
+}
+
 //要加入循环才行
 void s_task_5ms_low(void* p1,void* p2,void *p3)
 {
+    static char s_telemetry_buf[TELEMETRY_BUF_SIZE];
     while (1) {
         k_sem_take(&uart_print_sem, K_FOREVER);
-
-		char buf[150];
-
-        char motor_a[10];
-        char motor_b[10];
-        char tar_spd_a[10];
-        char tar_spd_b[10];
-        
-
-        float_to_str(motor_a, sizeof(motor_a), car_2026_U.spd_a, 2);
-        float_to_str(motor_b, sizeof(motor_b), car_2026_U.spd_b, 2);
-        float_to_str(tar_spd_a, sizeof(tar_spd_a), car_2026_U.tar_spd_a, 2);
-        float_to_str(tar_spd_b, sizeof(tar_spd_b), car_2026_U.tar_spd_b, 2);
-        snprintf(buf, sizeof(buf), "%s,%s,%s,%s\r\n",motor_a,motor_b,tar_spd_a,tar_spd_b);
-        uart_transmit(g_uart_computer, buf, strlen(buf));
+        format_telemetry(s_telemetry_buf, sizeof(s_telemetry_buf));
+        uart_transmit(g_uart_computer, s_telemetry_buf, strlen(s_telemetry_buf));
         menu_task_v();
     }
 }
@@ -154,14 +165,6 @@ void s_task_5ms_low(void* p1,void* p2,void *p3)
 // }
 
 
-
-
-
-int test_callback(uint8_t*data,uint32_t len32,void* user_data)
-{
-    uart_transmit(g_uart_computer, data, len32);
-    return 0;
-}
 
 int main(void)
 {
