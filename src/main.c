@@ -4,26 +4,30 @@
 #include "simulink/ARMCortex-M/car_2026/car_2026.h"
 #include "uart/uart_base.h"
 #include "uart/uarts.h"
+#include "value_to_str.h"
 #include "zephyr/drivers/counter.h"
 #include "zephyr/kernel.h"
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
+#include <sys/_intsup.h>
 
-K_MSGQ_DEFINE(uart_rx_queue, sizeof(struct uart_event_t), 30,4);
+// K_MSGQ_DEFINE(uart_rx_quesue, sizeof(struct uart_event_t), 30,4);
 
 
 static K_THREAD_STACK_DEFINE(s_stack_1ms_high, 4096); /* 1.5KB */
 static K_THREAD_STACK_DEFINE(s_stack_5ms_high, 4096); /* 1.5KB */
 static K_THREAD_STACK_DEFINE(s_stack_20ms_high, 4096); /* 1.5KB */
-static K_THREAD_STACK_DEFINE(s_stack_task_rx, 4096); /* 1.5KB */
+// static K_THREAD_STACK_DEFINE(s_stack_task_rx, 4096); /* 1.5KB */
 
 static struct k_thread s_thread_1ms_high;
 static struct k_thread s_thread_5ms_high;
 static struct k_thread s_thread_20ms_high;
-static struct k_thread s_thread_task_rx;
+// static struct k_thread s_thread_task_rx;
 
 
 static K_SEM_DEFINE(tim5_sem, 0, 1);
+static K_SEM_DEFINE(uart_print_sem, 0, 1); // 初始计数值为0，最大值为1，用作二进制信号量
 
 static const struct device *tim5_dev_pst;
 
@@ -87,6 +91,7 @@ static void s_task_1ms_high(void *p1,void *p2,void *p3)
 {
 	while (1) {
         k_sem_take(&tim5_sem, K_FOREVER);
+        uart_rx_analyze(g_uart_computer);
         car_2026_step0();
 	}
 }
@@ -95,43 +100,58 @@ void s_task_5ms_high(void *p1,void *p2,void *p3 )
 {
     while (1) {
         encoder_update_all();
-
         struct encoder_data_t motor_a;
         struct encoder_data_t motor_b;
-
         encoder_get_data(g_encoder_a_pst, &motor_a);
         encoder_get_data(g_encoder_b_pst, &motor_b);
-        car_2026_U.motor_a_spd = motor_a.rpm_f;
+        car_2026_U.spd_a = motor_a.rpm_f;
         car_2026_U.spd_b = motor_b.rpm_f;
         car_2026_step1();
         motor_set(g_motor_a_pst, car_2026_Y.pwm_a);
         motor_set(g_motor_b_pst, car_2026_Y.pwm_b);
+
+        k_sem_give(&uart_print_sem);
         k_sleep(K_MSEC(4));
     }
 }
 
 //要加入循环才行
-void s_task_20ms_high(void* p1,void* p2,void *p3)
+void s_task_5ms_low(void* p1,void* p2,void *p3)
 {
     while (1) {
+        k_sem_take(&uart_print_sem, K_FOREVER);
+
+		char buf[150];
+
+        char motor_a[10];
+        char motor_b[10];
+        char tar_spd_a[10];
+        char tar_spd_b[10];
+        
+
+        float_to_str(motor_a, sizeof(motor_a), car_2026_U.spd_a, 2);
+        float_to_str(motor_b, sizeof(motor_b), car_2026_U.spd_b, 2);
+        float_to_str(tar_spd_a, sizeof(tar_spd_a), car_2026_U.tar_spd_a, 2);
+        float_to_str(tar_spd_b, sizeof(tar_spd_b), car_2026_U.tar_spd_b, 2);
+        snprintf(buf, sizeof(buf), "%s,%s,%s,%s\r\n",motor_a,motor_b,tar_spd_a,tar_spd_b);
+        uart_transmit(g_uart_computer, buf, strlen(buf));
         menu_task_v();
-        k_sleep(K_MSEC(20));
     }
 }
 
-void s_task_rx(void* p1,void* p2,void *p3)
-{
-    struct uart_event_t rx_event;
+// void s_task_rx(void* p1,void* p2,void *p3)
+// {
+//     struct uart_event_t rx_event;
 
-    for (;;)
-    {
-        k_msgq_get(&uart_rx_queue, &rx_event, K_FOREVER);
-        if (rx_event.type_e == UART_EVENT_RX_DATA)
-        {
-            uart_rx_analyze(rx_event.base);
-        }
-    }
-}
+//     for (;;)
+//     {
+//         k_msgq_get(&uart_rx_queue, &rx_event, K_FOREVER);
+//         if (rx_event.type_e == UART_EVENT_RX_DATA)
+//         {
+//             uart_rx_analyze(rx_event.base);
+//         }
+//     }
+// }
 
 
 
@@ -148,8 +168,8 @@ int main(void)
 
     k_thread_create(&s_thread_1ms_high, s_stack_1ms_high, sizeof(s_stack_1ms_high), s_task_1ms_high, NULL, NULL, NULL, K_PRIO_PREEMPT(3), 0, K_NO_WAIT);
     k_thread_create(&s_thread_5ms_high, s_stack_5ms_high, sizeof(s_stack_5ms_high), s_task_5ms_high, NULL, NULL, NULL, K_PRIO_PREEMPT(4), 0, K_NO_WAIT);
-    k_thread_create(&s_thread_20ms_high, s_stack_20ms_high, sizeof(s_stack_20ms_high), s_task_20ms_high, NULL, NULL, NULL, K_PRIO_PREEMPT(10), 0, K_NO_WAIT);
-    k_thread_create(&s_thread_task_rx, s_stack_task_rx, sizeof(s_stack_task_rx), s_task_rx, NULL,NULL, NULL, K_PRIO_PREEMPT(3), 0,K_NO_WAIT);
+    k_thread_create(&s_thread_20ms_high, s_stack_20ms_high, sizeof(s_stack_20ms_high), s_task_5ms_low, NULL, NULL, NULL, K_PRIO_PREEMPT(10), 0, K_NO_WAIT);
+    // k_thread_create(&s_thread_task_rx, s_stack_task_rx, sizeof(s_stack_task_rx), s_task_rx, NULL,NULL, NULL, K_PRIO_PREEMPT(3), 0,K_NO_WAIT);
     while (1) {
         k_sleep(K_MSEC(1000));
 	}

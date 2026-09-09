@@ -90,11 +90,11 @@ static void s_uart_isr(const struct device *dev, void *user_data)
         }
       }
 
-      struct uart_event_t event = {
-          .base = &me->base,
-          .type_e = UART_EVENT_RX_DATA,
-      };
-      k_msgq_put(&uart_rx_queue, &event, K_NO_WAIT);
+    //   struct uart_event_t event = {
+    //       .base = &me->base,
+    //       .type_e = UART_EVENT_RX_DATA,
+    //   };
+    //   k_msgq_put(&uart_rx_queue, &event, K_NO_WAIT);
     }
 }
 

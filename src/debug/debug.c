@@ -59,16 +59,16 @@ static void  dispatch_line(char* line_pc)
         car_2026_U.tar_spd_a = values_pf[1];
         car_2026_U.tar_spd_b = values_pf[1];
         
-        uart_transmit(g_uart_computer, "tar_spd_set_success\r\n", 21);
+        // uart_transmit(g_uart_computer, "tar_spd_set_success\r\n", 21);
     }
     else if (strncmp(line_pc, "spd_kp:", 7) == 0) {
         SPD_KP = values_pf[0];
-        uart_transmit(g_uart_computer, "spd_kp_set\r\n", 21);
+        // uart_transmit(g_uart_computer, "spd_kp_set\r\n", 12);
 
     }
     else if (strncmp(line_pc, "spd_ki:", 7) == 0) {
         SPD_KI = values_pf[0];
-        uart_transmit(g_uart_computer, "spd_ki_set\r\n", 21);
+        // uart_transmit(g_uart_computer, "spd_ki_set\r\n", 12);
     }
 }
 

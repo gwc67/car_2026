@@ -5,7 +5,7 @@
  *
  * Model version                  : 1.0
  * Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
- * C/C++ source code generated on : Tue Sep  8 17:31:48 2026
+ * C/C++ source code generated on : Tue Sep  8 19:00:05 2026
  *
  * Target selection: ert.tlc
  * Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -19,12 +19,12 @@
 #include "rtwtypes.h"
 
 /* Exported block parameters */
-real32_T SPD_KI = 0.0F;                /* Variable: SPD_KI
+real32_T SPD_KI = 5.0F;                /* Variable: SPD_KI
                                         * Referenced by:
                                         *   '<S35>/Integral Gain'
                                         *   '<S88>/Integral Gain'
                                         */
-real32_T SPD_KP = 0.0F;                /* Variable: SPD_KP
+real32_T SPD_KP = 56.0F;               /* Variable: SPD_KP
                                         * Referenced by:
                                         *   '<S43>/Proportional Gain'
                                         *   '<S96>/Proportional Gain'
@@ -67,10 +67,10 @@ void car_2026_step1(void)              /* Sample time: [0.005s, 0.0s] */
   rtb_NOT_c = (car_2026_DW.running_flag == 0);
 
   /* Sum: '<S1>/Sum' incorporates:
-   *  Inport: '<Root>/motor_a_spd'
+   *  Inport: '<Root>/spd_a'
    *  Inport: '<Root>/tar_spd_a'
    */
-  rtb_Sum_k = car_2026_U.tar_spd_a - car_2026_U.motor_a_spd;
+  rtb_Sum_k = car_2026_U.tar_spd_a - car_2026_U.spd_a;
 
   /* DiscreteIntegrator: '<S38>/Integrator' */
   if (rtb_NOT_c || (car_2026_DW.Integrator_PrevResetState_e != 0)) {

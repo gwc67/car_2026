@@ -5,7 +5,7 @@
  *
  * Model version                  : 1.0
  * Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
- * C/C++ source code generated on : Tue Sep  8 17:31:48 2026
+ * C/C++ source code generated on : Tue Sep  8 19:00:05 2026
  *
  * Target selection: ert.tlc
  * Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -64,7 +64,7 @@ typedef struct {
 
 /* External inputs (root inport signals with default storage) */
 typedef struct {
-  real32_T motor_a_spd;                /* '<Root>/motor_a_spd' */
+  real32_T spd_a;                      /* '<Root>/spd_a' */
   uint8_T running_flag;                /* '<Root>/running_flag' */
   real32_T tar_spd_a;                  /* '<Root>/tar_spd_a' */
   real32_T spd_b;                      /* '<Root>/spd_b' */
