@@ -23,9 +23,9 @@ void euler_update(void)
     // mpu6050_get_accel(&acc_st);
     mpu6050_get_gyro(&gyro_st);
 
-    if () {
+    // if () {
     
-    }
+    // }
 
     car_2026_U.gyroz = gyro_st.z_f;
     // rtU.gyrox= gyro_st.x_db;

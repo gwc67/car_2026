@@ -156,13 +156,19 @@ static void format_telemetry(char *buf, size_t buf_size) {
            tar_spd_b,motor_a_fliter,motor_b_fliter,pwm_b,yaw);
 }
 
+static void menu_refresh(void)
+{
+    menu_request_refresh(g_mpu6050_euler_oled_pst);
+    menu_request_refresh(g_mpu6050_raw_oled_pst);
+}
+
 //要加入循环才行
 void s_task_5ms_low(void* p1,void* p2,void *p3)
 {
     static char s_telemetry_buf[TELEMETRY_BUF_SIZE];
     while (1) {
         k_sem_take(&uart_print_sem, K_FOREVER);
-        menu_request_refresh(g_mpu6050_euler_oled_pst);
+        menu_refresh();
         format_telemetry(s_telemetry_buf, sizeof(s_telemetry_buf));
         uart_transmit(g_uart_computer, s_telemetry_buf, strlen(s_telemetry_buf));
         menu_task_v();
