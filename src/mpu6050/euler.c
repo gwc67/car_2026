@@ -1,4 +1,5 @@
 #include "euler.h"
+#include "car_2026.h"
 #include "mpu6050.h"
 #include <math.h>
 #include <stdint.h>
@@ -16,13 +17,17 @@ void euler_update(void)
 {
     mpu6050_sample();
     
-    struct mpu6050_vec3_t acc_st = {0};
+    // struct mpu6050_vec3_t acc_st = {0};
     struct mpu6050_vec3_t gyro_st = {0};
 
-    mpu6050_get_accel(&acc_st);
+    // mpu6050_get_accel(&acc_st);
     mpu6050_get_gyro(&gyro_st);
 
+    if () {
+    
+    }
 
+    car_2026_U.gyroz = gyro_st.z_f;
     // rtU.gyrox= gyro_st.x_db;
     // rtU.gyroy = gyro_st.y_db;
     // rtU.accx = acc_st.x_db;

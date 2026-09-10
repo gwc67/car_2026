@@ -1,6 +1,9 @@
 #include "encode.h"
+#include "euler.h"
+#include "menu/OLED_Menu.h"
 #include "menu/menu.h"
 #include "motor/tb6612.h"
+#include "mpu6050.h"
 #include "simulink/ARMCortex-M/car_2026/car_2026.h"
 #include "uart/uart_base.h"
 #include "uart/uarts.h"
@@ -95,23 +98,27 @@ static void s_task_1ms_high(void *p1,void *p2,void *p3)
         k_sem_take(&tim5_sem, K_FOREVER);
         uart_rx_analyze(g_uart_computer);
         car_2026_step0();
+        motor_set(g_motor_a_pst, car_2026_Y.pwm_a);
+        motor_set(g_motor_b_pst, car_2026_Y.pwm_b);
+
 	}
 }
 
 void s_task_5ms_high(void *p1,void *p2,void *p3 )
 {
     while (1) {
+        euler_update();
         encoder_update_all();
         struct encoder_data_t motor_a;
         struct encoder_data_t motor_b;
         encoder_get_data(g_encoder_a_pst, &motor_a);
         encoder_get_data(g_encoder_b_pst, &motor_b);
+
+        
         car_2026_U.spd_a = motor_a.rpm_f;
         car_2026_U.spd_b = motor_b.rpm_f;
         car_2026_step1();
 
-        motor_set(g_motor_a_pst, car_2026_Y.pwm_a);
-        motor_set(g_motor_b_pst, car_2026_Y.pwm_b);
 
         k_sem_give(&uart_print_sem);
         k_sleep(K_MSEC(4));
@@ -128,14 +135,25 @@ static void format_telemetry(char *buf, size_t buf_size) {
   char motor_b[TELEMETRY_FIELD_SIZE];
   char tar_spd_a[TELEMETRY_FIELD_SIZE];
   char tar_spd_b[TELEMETRY_FIELD_SIZE];
+  char motor_a_fliter[TELEMETRY_FIELD_SIZE];
+  char motor_b_fliter[TELEMETRY_FIELD_SIZE];
+  char pwm_b[TELEMETRY_FIELD_SIZE];
+  char yaw[TELEMETRY_FIELD_SIZE];
+
+  
 
   float_to_str(motor_a, sizeof(motor_a), car_2026_U.spd_a, 2);
   float_to_str(motor_b, sizeof(motor_b), car_2026_U.spd_b, 2);
   float_to_str(tar_spd_a, sizeof(tar_spd_a), car_2026_U.tar_spd_a, 2);
   float_to_str(tar_spd_b, sizeof(tar_spd_b), car_2026_U.tar_spd_b, 2);
+  float_to_str(tar_spd_b, sizeof(tar_spd_b), car_2026_U.tar_spd_b, 2);
+  float_to_str(motor_a_fliter, sizeof(motor_a_fliter), car_2026_Y.spd_fliter_a, 2);
+  float_to_str(motor_b_fliter, sizeof(motor_b_fliter), car_2026_Y.spd_fliter_b, 2);
+  float_to_str(pwm_b, sizeof(pwm_b), car_2026_Y.pwm_b, 2);
+  float_to_str(yaw, sizeof(yaw), car_2026_Y.yaw_out, 2);
 
-  snprintf(buf, buf_size, "%s,%s,%s,%s\r\n", motor_a, motor_b, tar_spd_a,
-           tar_spd_b);
+  snprintf(buf, buf_size, "%s,%s,%s,%s,%s,%s,%s,%s\r\n", motor_a, motor_b, tar_spd_a,
+           tar_spd_b,motor_a_fliter,motor_b_fliter,pwm_b,yaw);
 }
 
 //要加入循环才行
@@ -144,6 +162,7 @@ void s_task_5ms_low(void* p1,void* p2,void *p3)
     static char s_telemetry_buf[TELEMETRY_BUF_SIZE];
     while (1) {
         k_sem_take(&uart_print_sem, K_FOREVER);
+        menu_request_refresh(g_mpu6050_euler_oled_pst);
         format_telemetry(s_telemetry_buf, sizeof(s_telemetry_buf));
         uart_transmit(g_uart_computer, s_telemetry_buf, strlen(s_telemetry_buf));
         menu_task_v();

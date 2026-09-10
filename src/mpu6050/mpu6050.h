@@ -4,15 +4,15 @@
 
 
 struct mpu6050_vec3_t{
-    double x_db;
-    double y_db;
-    double z_db;
+    float x_f;
+    float y_f;
+    float z_f;
 } ;
 
 int mpu6050_sample(void);
 int mpu6050_get_accel(struct mpu6050_vec3_t* out);
 int mpu6050_get_gyro(struct mpu6050_vec3_t *out);
-int mpu6050_get_temp(double *out);
+int mpu6050_get_temp(float *out);
 
 
 

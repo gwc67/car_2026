@@ -70,6 +70,10 @@ static void  dispatch_line(char* line_pc)
         SPD_KI = values_pf[0];
         // uart_transmit(g_uart_computer, "spd_ki_set\r\n", 12);
     }
+    else if (strncmp(line_pc, "spd_fillter:", 12) == 0) {
+        spd_filiter = values_pf[0];
+        uart_transmit(g_uart_computer, "spd_filiter\r\n", 12);
+    }
 }
 
 int debug_init(void)
