@@ -20,6 +20,7 @@
 #include "event.h"  
 #include "zephyr/kernel/thread.h"
 #include "zephyr/syscalls/kernel.h"
+#include "ano.h"
 // K_MSGQ_DEFINE(uart_rx_quesue, sizeof(struct uart_event_t), 30,4);
 
 
@@ -27,8 +28,8 @@ static K_THREAD_STACK_DEFINE(s_stack_1ms_high, 4096); /* 1.5KB */
 static K_THREAD_STACK_DEFINE(s_stack_5ms_high, 4096); /* 1.5KB */
 static K_THREAD_STACK_DEFINE(s_stack_5ms_low, 4096); /* 1.5KB */
 static K_THREAD_STACK_DEFINE(s_stack_10ms, 4096); /* 1.5KB */
-static K_THREAD_STACK_DEFINE(s_statck_dispatch, 2048); /* 1.5KB */
-static K_THREAD_STACK_DEFINE(s_statck_ano, 2048); /* 1.5KB */
+static K_THREAD_STACK_DEFINE(s_statck_dispatch, 4096); /* dispatch: 含 tree_queue_pop + dispatch_event + k_msgq_put 深层调用链 */
+static K_THREAD_STACK_DEFINE(s_statck_ano, 4096);      /* ano: 含 ano_send_data → s_frame_send (64B tx_buffer) */
 
 static struct k_thread s_thread_1ms_high;
 static struct k_thread s_thread_5ms_high;
@@ -118,29 +119,39 @@ void s_task_5ms_low(void* p1,void* p2,void *p3)
         k_sem_take(&uart_print_sem, K_FOREVER);
         menu_refresh();
         // format_telemetry(s_telemetry_buf, sizeof(s_telemetry_buf));
-        uart_transmit(g_uart_computer, s_telemetry_buf, strlen(s_telemetry_buf));
+        // uart_transmit(g_uart_computer, s_telemetry_buf, strlen(s_telemetry_buf));
         menu_task_v();
     }
 }
+    // tree = tree_queue_create();
+    // struct event_t evt;
+    // tree_err_t ret = tree_queue_pop(tree,&evt, K_FOREVER);
+    
+        // if (ret == TREE_OK) {
+        //     // dispatch_event(&evt);
+        //     // struct ano_event_t test = {g_com_ano,0x01};
+        //     // k_msgq_put(&ano_tx_queue,&test, K_NO_WAIT);
+        // }
 
 void s_task_10ms(void* p1,void* p2,void *p3)
 {
-    for (;;)
-    {
-        car_2026_step2();
-        k_sleep(K_MSEC(9));
+
+    for (;;) {
+
+        struct ano_event_t test = {g_com_ano,0x01};
+        k_msgq_put(&ano_tx_queue,&test, K_NO_WAIT);
+        k_sleep(K_MSEC(1000));
     }
 }
 
 void s_task_dispatch(void* p1,void* p2,void *p3)
 {
-    tree = tree_queue_create();
-    struct event_t evt;
-    for (;;) {
-        tree_err_t ret = tree_queue_pop(tree,&evt, K_FOREVER);
-        if (ret == TREE_OK) {
-            dispatch_event(&evt);
-        }
+    for (;;)
+    {
+        car_2026_step2();
+        struct ano_event_t test = {g_com_ano,0x01};
+        k_msgq_put(&ano_tx_queue,&test, K_NO_WAIT);
+        k_sleep(K_MSEC(1000));
     }
 }
 
@@ -162,7 +173,9 @@ int main(void)
     k_thread_create(&s_thread_10ms, s_stack_10ms, sizeof(s_stack_10ms),s_task_10ms, NULL,NULL, NULL, K_PRIO_PREEMPT(5), 0,K_NO_WAIT);
     k_thread_create(&s_thread_dispatch, s_statck_dispatch, sizeof(s_statck_dispatch),s_task_dispatch, NULL,NULL, NULL, K_PRIO_PREEMPT(5), 0,K_NO_WAIT);
     k_thread_create(&s_thread_ano, s_statck_ano, sizeof(s_statck_ano),s_task_ano, NULL,NULL, NULL, K_PRIO_PREEMPT(5), 0,K_NO_WAIT);
-    
+    struct ano_event_t test = {g_com_ano,0x01};
+    k_msgq_put(&ano_tx_queue,&test, K_NO_WAIT);
+
 
     while (1) {
         k_sleep(K_MSEC(1000));

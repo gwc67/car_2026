@@ -1,4 +1,5 @@
 #include "event.h"
+#include "ano_base.h"
 #include "zephyr/init.h"
 #include <stdint.h>
 #include <sys/_intsup.h>

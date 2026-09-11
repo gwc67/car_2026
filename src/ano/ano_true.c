@@ -114,7 +114,7 @@ static int s_get_par(struct ano_base_t* base , struct par_t* par_pst)
 
 static int s_data_SetWts(struct ano_base_t* base,uint8_t frame)
 {
-    struct ano_device_t *me = CONTAINER_OF(base,struct ano_device_t,base);
+    // struct ano_device_t *me = CONTAINER_OF(base,struct ano_device_t,base);
     struct ano_event_t event = {.frame = frame,.me = base};
     k_msgq_put(&ano_tx_queue, &event,K_MSEC(10));
     return 0;
@@ -142,7 +142,8 @@ static int s_clear_wait(struct ano_base_t* base)
 
 static void s_ano_event_callback(enum event_id_e id,uint32_t param,void* user)
 {
-    k_msgq_put(&ano_tx_queue, (struct ano_event_t*)user, K_NO_WAIT);
+    struct ano_event_t local_event = *(struct ano_event_t*)user;
+    k_msgq_put(&ano_tx_queue, &local_event, K_NO_WAIT);
 }
 
 static int s_set_send_id(struct ano_base_t* base,uint8_t frame,enum event_id_e event_id_e,uint8_t prio)
