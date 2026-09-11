@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 #define RAD_TO_DEG 57.295779513082320876798154814105
-
+#define GYRO_Z_BIAS 0.003f
 
 #if  ACC_ANGLE
 float angle_acc_f;
@@ -23,9 +23,9 @@ void euler_update(void)
     // mpu6050_get_accel(&acc_st);
     mpu6050_get_gyro(&gyro_st);
 
-    // if () {
-    
-    // }
+    if (fabsf(gyro_st.z_f) < GYRO_Z_BIAS ) {
+        gyro_st.z_f = 0;
+    }
 
     car_2026_U.gyroz = gyro_st.z_f;
     // rtU.gyrox= gyro_st.x_db;
@@ -37,10 +37,6 @@ void euler_update(void)
 #if ACC_ANGLE
     angle_acc_f = -atan2(acc_st.x_db, acc_st.z_db) * RAD_TO_DEG;   //往前倾的时候x,z 都是正的
 #endif
-    // angle_gryo_f = pitch_pre_f + gyro_st.y_db * 0.001 * RAD_TO_DEG; //gyro.y_db 却是负的，因此这样
-
-    // float Alpha = 0.05;
-    // pitch_pre_f = Alpha * angle_acc_f + (1 - Alpha) * angle_gryo_f
 
 }
 

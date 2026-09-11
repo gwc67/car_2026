@@ -3,9 +3,9 @@
  *
  * Code generated for Simulink model 'car_2026'.
  *
- * Model version                  : 1.2
+ * Model version                  : 1.4
  * Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
- * C/C++ source code generated on : Wed Sep  9 21:41:58 2026
+ * C/C++ source code generated on : Fri Sep 11 08:52:34 2026
  *
  * Target selection: ert.tlc
  * Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -19,12 +19,12 @@
 #include "rtwtypes.h"
 
 /* Exported block parameters */
-real32_T SPD_KI = 5.0F;                /* Variable: SPD_KI
+real32_T SPD_KI = 1.0F;                /* Variable: SPD_KI
                                         * Referenced by:
                                         *   '<S91>/Integral Gain'
                                         *   '<S144>/Integral Gain'
                                         */
-real32_T SPD_KP = 56.0F;               /* Variable: SPD_KP
+real32_T SPD_KP = 30.0F;               /* Variable: SPD_KP
                                         * Referenced by:
                                         *   '<S99>/Proportional Gain'
                                         *   '<S152>/Proportional Gain'
@@ -32,10 +32,10 @@ real32_T SPD_KP = 56.0F;               /* Variable: SPD_KP
 real32_T TURN_KD = 0.0F;               /* Variable: TURN_KD
                                         * Referenced by: '<S34>/Derivative Gain'
                                         */
-real32_T TURN_KP = 1.0F;               /* Variable: TURN_KP
+real32_T TURN_KP = 0.56F;              /* Variable: TURN_KP
                                         * Referenced by: '<S46>/Proportional Gain'
                                         */
-real32_T spd_filiter = 0.001F;         /* Variable: spd_filiter
+real32_T spd_filiter = 0.08F;          /* Variable: spd_filiter
                                         * Referenced by:
                                         *   '<S4>/Constant1'
                                         *   '<S5>/Constant1'
@@ -70,8 +70,8 @@ void car_2026_step0(void)              /* Sample time: [0.001s, 0.0s] */
 void car_2026_step1(void)              /* Sample time: [0.005s, 0.0s] */
 {
   int32_T tmp_0;
-  real32_T DiscreteTimeIntegrator;
   real32_T rtb_Sum_k;
+  real32_T u0;
   boolean_T rtb_NOT_c;
   boolean_T tmp;
 
@@ -94,15 +94,22 @@ void car_2026_step1(void)              /* Sample time: [0.005s, 0.0s] */
   car_2026_DW.UnitDelay_DSTATE = (1.0F - spd_filiter) *
     car_2026_DW.UnitDelay_DSTATE + car_2026_U.spd_a * spd_filiter;
 
-  /* RateTransition generated from: '<Root>/Subsystem' */
+  /* RateTransition: '<Root>/RT1' incorporates:
+   *  RateTransition: '<Root>/RT'
+   *  RateTransition generated from: '<Root>/Add1'
+   */
   tmp = (car_2026_M->Timing.RateInteraction.TID1_2 == 1);
   if (tmp) {
-    /* RateTransition generated from: '<Root>/Subsystem' */
-    car_2026_B.TmpRTBAtSubsystemOutport1 =
-      car_2026_DW.TmpRTBAtSubsystemOutport1_Buffe;
+    /* RateTransition: '<Root>/RT1' */
+    car_2026_B.RT1 = car_2026_DW.RT1_Buffer0;
   }
 
-  /* End of RateTransition generated from: '<Root>/Subsystem' */
+  /* End of RateTransition: '<Root>/RT1' */
+
+  /* Sum: '<Root>/Add' incorporates:
+   *  Inport: '<Root>/tar_spd_a'
+   */
+  car_2026_Y.tar_spd_a_2 = car_2026_B.RT1 + car_2026_U.tar_spd_a;
 
   /* Outputs for Atomic SubSystem: '<Root>/spd_a_pid' */
   /* Logic: '<S2>/NOT' incorporates:
@@ -111,12 +118,9 @@ void car_2026_step1(void)              /* Sample time: [0.005s, 0.0s] */
   rtb_NOT_c = (car_2026_DW.running_flag == 0);
 
   /* Sum: '<S2>/Sum' incorporates:
-   *  Inport: '<Root>/tar_spd_a'
-   *  Sum: '<Root>/Add'
    *  UnitDelay: '<S4>/Unit Delay'
    */
-  rtb_Sum_k = (car_2026_B.TmpRTBAtSubsystemOutport1 + car_2026_U.tar_spd_a) -
-    car_2026_DW.UnitDelay_DSTATE;
+  rtb_Sum_k = car_2026_Y.tar_spd_a_2 - car_2026_DW.UnitDelay_DSTATE;
 
   /* DiscreteIntegrator: '<S94>/Integrator' */
   if (rtb_NOT_c || (car_2026_DW.Integrator_PrevResetState_e != 0)) {
@@ -131,21 +135,20 @@ void car_2026_step1(void)              /* Sample time: [0.005s, 0.0s] */
      *  DiscreteIntegrator: '<S94>/Integrator'
      *  Gain: '<S99>/Proportional Gain'
      */
-    DiscreteTimeIntegrator = SPD_KP * rtb_Sum_k +
-      car_2026_DW.Integrator_DSTATE_o;
+    u0 = SPD_KP * rtb_Sum_k + car_2026_DW.Integrator_DSTATE_o;
 
     /* Saturate: '<S101>/Saturation' */
-    if (DiscreteTimeIntegrator > ((int16_T)PWM_MAX)) {
-      DiscreteTimeIntegrator = ((int16_T)PWM_MAX);
-    } else if (DiscreteTimeIntegrator < ((int16_T)PWM_MIN)) {
-      DiscreteTimeIntegrator = ((int16_T)PWM_MIN);
+    if (u0 > ((int16_T)PWM_MAX)) {
+      u0 = ((int16_T)PWM_MAX);
+    } else if (u0 < ((int16_T)PWM_MIN)) {
+      u0 = ((int16_T)PWM_MIN);
     }
 
-    DiscreteTimeIntegrator = floorf(DiscreteTimeIntegrator);
-    if (rtIsNaNF(DiscreteTimeIntegrator)) {
+    u0 = floorf(u0);
+    if (rtIsNaNF(u0)) {
       tmp_0 = 0;
     } else {
-      tmp_0 = (int32_T)fmodf(DiscreteTimeIntegrator, 65536.0F);
+      tmp_0 = (int32_T)fmodf(u0, 65536.0F);
     }
 
     /* Outport: '<Root>/pwm_a' incorporates:
@@ -188,14 +191,22 @@ void car_2026_step1(void)              /* Sample time: [0.005s, 0.0s] */
   car_2026_DW.UnitDelay_DSTATE_b = (1.0F - spd_filiter) *
     car_2026_DW.UnitDelay_DSTATE_b + car_2026_U.spd_b * spd_filiter;
 
+  /* RateTransition generated from: '<Root>/Add1' */
+  if (tmp) {
+    /* RateTransition generated from: '<Root>/Add1' */
+    car_2026_B.TmpRTBAtAdd1Inport2 = car_2026_DW.TmpRTBAtAdd1Inport2_Buffer0;
+  }
+
+  /* Sum: '<Root>/Add1' incorporates:
+   *  Inport: '<Root>/tar_spd_b'
+   */
+  car_2026_Y.tar_spd_b_2 = car_2026_U.tar_spd_b - car_2026_B.TmpRTBAtAdd1Inport2;
+
   /* Outputs for Atomic SubSystem: '<Root>/spd_b_pid' */
   /* Sum: '<S3>/Sum' incorporates:
-   *  Inport: '<Root>/tar_spd_b'
-   *  Sum: '<Root>/Add1'
    *  UnitDelay: '<S5>/Unit Delay'
    */
-  rtb_Sum_k = (car_2026_U.tar_spd_b + car_2026_B.TmpRTBAtSubsystemOutport1) -
-    car_2026_DW.UnitDelay_DSTATE_b;
+  rtb_Sum_k = car_2026_Y.tar_spd_b_2 - car_2026_DW.UnitDelay_DSTATE_b;
 
   /* DiscreteIntegrator: '<S147>/Integrator' incorporates:
    *  DataStoreRead: '<S3>/Data Store Read'
@@ -214,20 +225,20 @@ void car_2026_step1(void)              /* Sample time: [0.005s, 0.0s] */
      *  DiscreteIntegrator: '<S147>/Integrator'
      *  Gain: '<S152>/Proportional Gain'
      */
-    DiscreteTimeIntegrator = SPD_KP * rtb_Sum_k + car_2026_DW.Integrator_DSTATE;
+    u0 = SPD_KP * rtb_Sum_k + car_2026_DW.Integrator_DSTATE;
 
     /* Saturate: '<S154>/Saturation' */
-    if (DiscreteTimeIntegrator > ((int16_T)PWM_MAX)) {
-      DiscreteTimeIntegrator = ((int16_T)PWM_MAX);
-    } else if (DiscreteTimeIntegrator < ((int16_T)PWM_MIN)) {
-      DiscreteTimeIntegrator = ((int16_T)PWM_MIN);
+    if (u0 > ((int16_T)PWM_MAX)) {
+      u0 = ((int16_T)PWM_MAX);
+    } else if (u0 < ((int16_T)PWM_MIN)) {
+      u0 = ((int16_T)PWM_MIN);
     }
 
-    DiscreteTimeIntegrator = floorf(DiscreteTimeIntegrator);
-    if (rtIsNaNF(DiscreteTimeIntegrator)) {
+    u0 = floorf(u0);
+    if (rtIsNaNF(u0)) {
       tmp_0 = 0;
     } else {
-      tmp_0 = (int32_T)fmodf(DiscreteTimeIntegrator, 65536.0F);
+      tmp_0 = (int32_T)fmodf(u0, 65536.0F);
     }
 
     /* Outport: '<Root>/pwm_b' incorporates:
@@ -275,21 +286,21 @@ void car_2026_step1(void)              /* Sample time: [0.005s, 0.0s] */
   /* DiscreteIntegrator: '<Root>/Discrete-Time Integrator' incorporates:
    *  Inport: '<Root>/gyroz'
    */
-  rtb_Sum_k = 0.0025F * car_2026_U.gyroz;
+  u0 = 0.0025F * car_2026_U.gyroz;
 
   /* DiscreteIntegrator: '<Root>/Discrete-Time Integrator' */
-  DiscreteTimeIntegrator = rtb_Sum_k + car_2026_DW.DiscreteTimeIntegrator_DSTATE;
+  rtb_Sum_k = u0 + car_2026_DW.DiscreteTimeIntegrator_DSTATE;
 
   /* Gain: '<Root>/Gain' */
-  car_2026_Y.yaw_out = DEGREE * DiscreteTimeIntegrator;
+  car_2026_Y.yaw_out = DEGREE * rtb_Sum_k;
 
-  /* RateTransition generated from: '<Root>/Subsystem' */
+  /* RateTransition: '<Root>/RT' */
   if (tmp) {
-    car_2026_DW.TmpRTBAtSubsystemInport1_Buffer = car_2026_Y.yaw_out;
+    car_2026_DW.RT_Buffer = car_2026_Y.yaw_out;
   }
 
   /* Update for DiscreteIntegrator: '<Root>/Discrete-Time Integrator' */
-  car_2026_DW.DiscreteTimeIntegrator_DSTATE = rtb_Sum_k + DiscreteTimeIntegrator;
+  car_2026_DW.DiscreteTimeIntegrator_DSTATE = u0 + rtb_Sum_k;
 }
 
 /* Model step function for TID2 */
@@ -301,10 +312,9 @@ void car_2026_step2(void)              /* Sample time: [0.01s, 0.0s] */
   /* Outputs for Atomic SubSystem: '<Root>/Subsystem' */
   /* Sum: '<S1>/Sum' incorporates:
    *  Inport: '<Root>/target_yaw'
-   *  RateTransition generated from: '<Root>/Subsystem'
+   *  RateTransition: '<Root>/RT'
    */
-  rtb_Sum_g = car_2026_U.target_yaw -
-    car_2026_DW.TmpRTBAtSubsystemInport1_Buffer;
+  rtb_Sum_g = car_2026_U.target_yaw - car_2026_DW.RT_Buffer;
 
   /* Gain: '<S44>/Filter Coefficient' incorporates:
    *  DiscreteIntegrator: '<S36>/Filter'
@@ -314,16 +324,19 @@ void car_2026_step2(void)              /* Sample time: [0.01s, 0.0s] */
   rtb_FilterCoefficient = (TURN_KD * rtb_Sum_g - car_2026_DW.Filter_DSTATE) *
     100.0F;
 
-  /* Sum: '<S50>/Sum' incorporates:
+  /* Saturate: '<S48>/Saturation' incorporates:
    *  Gain: '<S46>/Proportional Gain'
+   *  Sum: '<S50>/Sum'
    */
-  rtb_Sum_g = TURN_KP * rtb_Sum_g + rtb_FilterCoefficient;
+  car_2026_Y.turn_spd = TURN_KP * rtb_Sum_g + rtb_FilterCoefficient;
 
   /* Saturate: '<S48>/Saturation' */
-  if (rtb_Sum_g > TURN_SPD_MAX) {
-    rtb_Sum_g = TURN_SPD_MAX;
-  } else if (rtb_Sum_g < TURN_SPD_MIN) {
-    rtb_Sum_g = TURN_SPD_MIN;
+  if (car_2026_Y.turn_spd > TURN_SPD_MAX) {
+    /* Saturate: '<S48>/Saturation' */
+    car_2026_Y.turn_spd = TURN_SPD_MAX;
+  } else if (car_2026_Y.turn_spd < TURN_SPD_MIN) {
+    /* Saturate: '<S48>/Saturation' */
+    car_2026_Y.turn_spd = TURN_SPD_MIN;
   }
 
   /* End of Saturate: '<S48>/Saturation' */
@@ -333,8 +346,11 @@ void car_2026_step2(void)              /* Sample time: [0.01s, 0.0s] */
 
   /* End of Outputs for SubSystem: '<Root>/Subsystem' */
 
-  /* RateTransition generated from: '<Root>/Subsystem' */
-  car_2026_DW.TmpRTBAtSubsystemOutport1_Buffe = rtb_Sum_g;
+  /* RateTransition: '<Root>/RT1' */
+  car_2026_DW.RT1_Buffer0 = car_2026_Y.turn_spd;
+
+  /* RateTransition generated from: '<Root>/Add1' */
+  car_2026_DW.TmpRTBAtAdd1Inport2_Buffer0 = car_2026_Y.turn_spd;
 }
 
 /* Model initialize function */

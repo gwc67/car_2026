@@ -46,34 +46,29 @@ int debug_par_check(uint8_t* data,uint32_t len32,void* user_data)
 static void  dispatch_line(char* line_pc)
 {
     float values_pf[4] = {0};
-    // int16_t values_ps[4] = {0};
     str_to_float(line_pc, values_pf, 4);
 
     if (strncmp(line_pc, "turn_tar:", 8) == 0) {
-        // int16_t averget_pwm = (int16_t)(values_pf[1] * 25);
-        // int16_t turn_pwm = (int16_t)(values_pf[0] * 10);
-
-        // motor_set(g_motor_a_pst, averget_pwm - turn_pwm);
-        // motor_set(g_motor_b_pst, averget_pwm + turn_pwm);
-
         car_2026_U.tar_spd_a = values_pf[1];
         car_2026_U.tar_spd_b = values_pf[1];
-        
-        // uart_transmit(g_uart_computer, "tar_spd_set_success\r\n", 21);
     }
     else if (strncmp(line_pc, "spd_kp:", 7) == 0) {
         SPD_KP = values_pf[0];
-        // uart_transmit(g_uart_computer, "spd_kp_set\r\n", 12);
-
     }
     else if (strncmp(line_pc, "spd_ki:", 7) == 0) {
         SPD_KI = values_pf[0];
-        // uart_transmit(g_uart_computer, "spd_ki_set\r\n", 12);
     }
     else if (strncmp(line_pc, "spd_fillter:", 12) == 0) {
-        spd_filiter = values_pf[0];
-        uart_transmit(g_uart_computer, "spd_filiter\r\n", 12);
+        spd_filiter = values_pf[0];        
     }
+    else if (strncmp(line_pc, "turn_kp", strlen("turn_kp")) == 0) {
+        TURN_KP = values_pf[0];
+    }
+    else if (strncmp(line_pc, "turn_kd", strlen("turn_kd")) == 0) {
+        TURN_KD = values_pf[0];
+    }
+
+
 }
 
 int debug_init(void)

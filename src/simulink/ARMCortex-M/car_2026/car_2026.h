@@ -3,9 +3,9 @@
  *
  * Code generated for Simulink model 'car_2026'.
  *
- * Model version                  : 1.2
+ * Model version                  : 1.4
  * Simulink Coder version         : 25.1 (R2025a) 21-Nov-2024
- * C/C++ source code generated on : Wed Sep  9 21:41:58 2026
+ * C/C++ source code generated on : Fri Sep 11 08:52:34 2026
  *
  * Target selection: ert.tlc
  * Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -58,7 +58,8 @@
 
 /* Block signals (default storage) */
 typedef struct {
-  real32_T TmpRTBAtSubsystemOutport1;  /* '<Root>/Subsystem' */
+  real32_T RT1;                        /* '<Root>/RT1' */
+  real32_T TmpRTBAtAdd1Inport2;        /* '<Root>/Subsystem' */
 } B_car_2026_T;
 
 /* Block states (default storage) for system '<Root>' */
@@ -69,8 +70,9 @@ typedef struct {
   real32_T Integrator_DSTATE;          /* '<S147>/Integrator' */
   real32_T Integrator_DSTATE_o;        /* '<S94>/Integrator' */
   real32_T Filter_DSTATE;              /* '<S36>/Filter' */
-  real32_T TmpRTBAtSubsystemOutport1_Buffe;/* synthesized block */
-  real32_T TmpRTBAtSubsystemInport1_Buffer;/* synthesized block */
+  real32_T RT1_Buffer0;                /* '<Root>/RT1' */
+  real32_T TmpRTBAtAdd1Inport2_Buffer0;/* synthesized block */
+  real32_T RT_Buffer;                  /* '<Root>/RT' */
   int8_T Integrator_PrevResetState;    /* '<S147>/Integrator' */
   int8_T Integrator_PrevResetState_e;  /* '<S94>/Integrator' */
   uint8_T running_flag;                /* '<Root>/Data Store Memory' */
@@ -94,6 +96,9 @@ typedef struct {
   real32_T spd_fliter_a;               /* '<Root>/spd_fliter_a ' */
   real32_T spd_fliter_b;               /* '<Root>/spd_fliter_b ' */
   real32_T yaw_out;                    /* '<Root>/yaw_out' */
+  real32_T turn_spd;                   /* '<Root>/turn_spd' */
+  real32_T tar_spd_a_2;                /* '<Root>/tar_spd_a_2' */
+  real32_T tar_spd_b_2;                /* '<Root>/tar_spd_b_2' */
 } ExtY_car_2026_T;
 
 /* Real-time Model Data Structure */

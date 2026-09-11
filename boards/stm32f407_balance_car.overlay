@@ -6,6 +6,7 @@
 	 * USART2_TX -> DMA1 Stream 4 (ch4) 或 Stream 7 (ch4)
 	 * USART2_RX -> DMA1 Stream 5 (ch4)
 	 */
+	/* current-speed = <115200>; */
 	dmas = <&dma1 6 4 STM32_DMA_PERIPH_TX STM32_DMA_FIFO_FULL>,
 	       <&dma1 5 4 STM32_DMA_PERIPH_RX STM32_DMA_FIFO_FULL>;
 	dma-names = "tx", "rx";
