@@ -1,10 +1,11 @@
 #include "ano_device_com.h"
-#include "ano.h"
+#include "..\ano.h"
 #include "uarts.h"
-#include "driver_registry.h"
+#include "zephyr/init.h"
+#include "zephyr/logging/log.h"
+#include <sys/_intsup.h>
 
-
-
+LOG_MODULE_REGISTER(ano_device_com);
 
 void com_receive_anl(uint8_t* data,uint8_t len8)
 {
@@ -28,7 +29,7 @@ void com_receive_anl(uint8_t* data,uint8_t len8)
     {
         struct ck_t snap = {0};
         if (snap.id_uc == *(data + 4) && snap.sc_uc == *(data + 5) && snap.ac_uc == *(data + 6)) {
-            // ano_clear_wait(g_com_ano_pst);
+            ano_clear_wait(g_com_ano);
         }
     }
     else if (*(data + 2) == 0xe0)
@@ -82,12 +83,26 @@ void com_send_buffer(uint8_t *data,uint8_t len8)
 //prio 可能没有明显效果，比如定时事件中，EVT_TIMER_1000MS 一产生就被取走，导致即使EVT_TIMER_500MS 优先级更高，却是1000MS的事件先执行
 //因为1000MS的事件先产生，想要解决的话，就只能够通过约束soft_timer中 1000MS的回调注册在500ms之后 syster_timer_init 中约束
 // 
-static void s_ano_device_com_init(void)
+static int s_ano_device_com_init(void)
 {
     //默认都可以事件触发
-    ano_register_callback(g_com_ano, com_receive_anl, com_add_send_data, com_send_buffer);
-    ano_set_send_id(g_com_ano, 0x02,EVT_TIMER_1000MS,2);
-    ano_set_send_id(g_com_ano, 0x01,EVT_TIMER_500MS,1);
+    int ret = ano_register_callback(g_com_ano, com_receive_anl, com_add_send_data, com_send_buffer);
+    if (ret) {
+        LOG_ERR("frame_fail_set");
+        return ret;
+    }
+    ret = ano_set_send_id(g_com_ano, 0x02,EVT_TIMER_1000MS,2);
+    if (ret) {
+        LOG_ERR("frame_fail_set");
+        return ret;
+    }
+    ret = ano_set_send_id(g_com_ano, 0x01,EVT_TIMER_500MS,1);
+    if (ret) {
+        LOG_ERR("frame_fail_set");
+        return ret;
+    }
+    LOG_INF("frame_init_success");    
+    return 0;
 }
 
-DRIVER_INIT_3(s_ano_device_com_init);
+SYS_INIT(s_ano_device_com_init,APPLICATION,INIT_3);

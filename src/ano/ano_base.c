@@ -1,6 +1,5 @@
 #include "ano_base.h"
 #include "stdio.h"
-#include "mesc.h"
 #include "zephyr/sys/check.h"
 #include <sys/errno.h>
 int ano_send_cmd(struct ano_base_t*me, struct cmd_t* cmd_pst)

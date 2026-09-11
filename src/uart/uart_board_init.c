@@ -3,7 +3,7 @@
 #include "zephyr/device.h"
 #include "zephyr/init.h"
 #include <sys/_intsup.h>
-
+#include "event/event.h"
 #define RING_TX_LEN 512
 #define RING_RX_LEN 512
 #define TX_LEN 30
@@ -42,7 +42,7 @@ int uart_board_init(void)
     return 0;
 }
 
-SYS_INIT(uart_board_init, APPLICATION, 11);
+SYS_INIT(uart_board_init, APPLICATION, INIT_1);
 
 int uart_receive_enable_all(void)
 {
@@ -50,4 +50,4 @@ int uart_receive_enable_all(void)
     return ret;
 }
 
-SYS_INIT(uart_receive_enable_all, APPLICATION, 12);
+SYS_INIT(uart_receive_enable_all, APPLICATION, INIT_7);

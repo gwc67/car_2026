@@ -1,11 +1,16 @@
 #ifndef __EVENT_H
 #define __EVENT_H
-
-#include "main.h"
+#include <stdint.h>
 #define  HIGH_PRIO_QUEUE_SIZE 16
 #define  NORMAL_PRIO_QUEUE_SIZE 32
 
-
+#define INIT_1 10
+#define INIT_2 11
+#define INIT_3 12
+#define INIT_4 13
+#define INIT_5 14
+#define INIT_6 15
+#define INIT_7 16
 
 enum event_id_e
 {
@@ -34,19 +39,7 @@ struct event_t {
 
 typedef void (*event_handler_t)(enum event_id_e id, uint32_t param, void *user);
 
-void event_publish_sy(enum event_id_e id,uint32_t param);
-
-// void event_publish_ay(enum event_id_e id,uint32_t param,uint8_t prior);
-
-// void event_publish_ay_isr(enum event_id_e id,uint32_t param,enum event_prio_e prior);
-
 void event_subscribe(enum event_id_e id,event_handler_t handler,void *user,uint8_t priority);
 
 void dispatch_event(struct event_t *e);
-
-// #define EVT_KEY_PRESSED   ((enum event_id_e)100)
-// #define EVT_LED_ON        ((enum event_id_e)200)
-// #define EVT_TIMER_10MS    ((enum event_id_e)300)
-// #define EVT_TIMER_500MS    ((enum event_id_e)301)
-
 #endif

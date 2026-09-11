@@ -22,10 +22,10 @@ target_sources(app PRIVATE
     src/menu/menu.c
     src/menu/OLED_Menu.c
     src/menu/font.c
-    # src/ano/ano_true.c
-    # src/ano/ano_base.c
-    # src/ano/ano_board_init.c
-    # src/ano/ano_device/ano_device_com.c
+    src/ano/ano_true.c
+    src/ano/ano_base.c
+    src/ano/ano_board_init.c
+    src/ano/ano_device/ano_device_com.c
     src/uart/uart_base.c
     src/uart/uart_true.c
     src/uart/uart_board_init.c
@@ -38,6 +38,10 @@ target_sources(app PRIVATE
     src/debug/debug.c
     src/simulink/ARMCortex-M/car_2026/car_2026.c
     src/simulink/ARMCortex-M/car_2026/rt_nonfinite.c
+    src/event/event.c
+    src/tim/tim.c
+    src/tim/soft_timer.c
+    src/double_tree/double_tree.c
     # src/simulink/ARMCortex-M/car_2026/blinky_data.c
     
 )
@@ -45,8 +49,8 @@ target_sources(app PRIVATE
 target_include_directories(app PRIVATE
     src
     src/menu
-    # src/ano
-    # src/ano/ano_device
+    src/ano
+    src/ano/ano_device
     src/uart
     src/mpu6050
     src/mess
@@ -55,4 +59,7 @@ target_include_directories(app PRIVATE
     src/key
     src/simulink/ARMCortex-M/car_2026
     src/debug
+    src/event
+    src/tim
+    src/double_tree
 )

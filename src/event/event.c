@@ -1,9 +1,7 @@
 #include "event.h"
-#include "FreeRTOS.h"
-#include "semphr.h"
-#include "driver_registry.h"
 #include "zephyr/init.h"
 #include <stdint.h>
+#include <sys/_intsup.h>
 
 struct sub_item_t {
     enum event_id_e id;
@@ -18,7 +16,7 @@ struct sub_item_t {
 static struct sub_item_t s_subs[SUB_MAX];
 
 
-void event_bus_init(void)
+int event_bus_init(void)
 {
   uint16_t i;
   for (i = 0; i < SUB_MAX; i++) {
@@ -27,9 +25,10 @@ void event_bus_init(void)
     s_subs[i].user = 0;
     s_subs[i].priority = 0;
     s_subs[i].id = EVT_NONE;
+  }
+  return 0;
 }
-}
-SYS_INIT(event_bus_init,APPLICATION,1);
+SYS_INIT(event_bus_init,APPLICATION,INIT_1);
 
 void event_subscribe(enum event_id_e id, event_handler_t handler, void *user, uint8_t priority)
 {
@@ -54,16 +53,6 @@ void event_subscribe(enum event_id_e id, event_handler_t handler, void *user, ui
     }
 }
 
-void event_publish_sy(enum event_id_e id,uint32_t param)
-{
-  uint16_t i;
-  for (i = 0; i < SUB_MAX; i++) {
-    if ((s_subs[i].used != 0) && (s_subs[i].id == id)) {
-      s_subs[i].handler(id,param,s_subs->user);
-    }
-  }
-}
-
 //prio 越小先执行
 void dispatch_event(struct event_t *e)
 {
@@ -78,20 +67,3 @@ void dispatch_event(struct event_t *e)
         }
     }
 }
-
-// void event_publish_ay(enum event_id_e id, uint32_t param, enum event_prio_e prior)
-// {
-//     struct event_t e = {.id = id, .param = param};
-//     xQueueSend(event_queue[prior], &e, 0);
-//     xSemaphoreGive(dispatch_semap);
-// }
-
-// void event_publish_ay_isr(enum event_id_e id,uint32_t param,enum event_prio_e prior)
-// {
-//     struct event_t e = {.id = id,.param = param};
-//     BaseType_t xtaskwoken = pdFALSE;
-//     xQueueSendToBackFromISR(event_queue[prior], &e, &xtaskwoken);
-//     xSemaphoreGiveFromISR(dispatch_semap,&xtaskwoken);
-//     portYIELD_FROM_ISR(xtaskwoken);
-// }
-

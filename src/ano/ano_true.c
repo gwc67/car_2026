@@ -1,8 +1,17 @@
 #include "ano_true.h"
+#include "ano_base.h"
+#include "zephyr/kernel.h"
 #include "zephyr/sys/util.h"
 #include "zephyr/sys/check.h"
+#include "zephyr/syscalls/kernel.h"
 #include <sys/errno.h>
+#include "event/event.h"
 // extern QueueHandle_t      ano_tx_queue;
+
+#define ANO_TX_QUEUE_LENGH 20
+
+K_MSGQ_DEFINE(ano_tx_queue, sizeof(struct ano_event_t), 20, 4);
+
 
 static int s_frame_send(struct ano_base_t* base,uint8_t frame)
 {
@@ -49,14 +58,14 @@ static int s_frame_send(struct ano_base_t* base,uint8_t frame)
 
 }
 
-
+//将这些命令帧的发送我提前到最前面
 static int s_send_cmd(struct ano_base_t* base ,struct cmd_t* cmd_pst)
 {
     struct ano_device_t *me = CONTAINER_OF(base,struct ano_device_t,base);
     me->frame_pst->send_cmd_st = *cmd_pst;
 
     struct ano_event_t event = {.frame = 0xe0,.me = base};
-    // xQueueSend(ano_tx_queue, &event,0);
+    k_msgq_put_front(&ano_tx_queue, &event);
     return 0;
 }
 
@@ -67,7 +76,7 @@ static int s_send2check(struct ano_base_t* base, struct ck_t* ck_pst)
 
 
     struct ano_event_t event = {.frame = 0x00,.me = base};
-    // xQueueSend(ano_tx_queue, &event,0);
+    k_msgq_put_front(&ano_tx_queue, &event);
     return 0;
 }
 
@@ -77,7 +86,7 @@ static int s_set_par(struct ano_base_t* base, struct par_t* par_pst)
     me->frame_pst->par_data_st = *par_pst;
     
     struct ano_event_t event = {.frame = 0xe2,.me = base};
-    // xQueueSend(ano_tx_queue, &event,0);
+    k_msgq_put_front(&ano_tx_queue, &event);
     return 0;
 }
 
@@ -107,7 +116,7 @@ static int s_data_SetWts(struct ano_base_t* base,uint8_t frame)
 {
     struct ano_device_t *me = CONTAINER_OF(base,struct ano_device_t,base);
     struct ano_event_t event = {.frame = frame,.me = base};
-    // xQueueSend(ano_tx_queue, &event,10);
+    k_msgq_put(&ano_tx_queue, &event,K_MSEC(10));
     return 0;
 }
 
@@ -130,17 +139,19 @@ static int s_clear_wait(struct ano_base_t* base)
 
 //对应匿名定时发送，使用的是订阅机制，走的是统一订阅事件
 //匿名接受，使用的rx和tx单独的队列机制
+
 static void s_ano_event_callback(enum event_id_e id,uint32_t param,void* user)
 {
-    // xQueueSend(ano_tx_queue,(struct ano_event_t*)user,0);
+    k_msgq_put(&ano_tx_queue, (struct ano_event_t*)user, K_NO_WAIT);
 }
+
 static int s_set_send_id(struct ano_base_t* base,uint8_t frame,enum event_id_e event_id_e,uint8_t prio)
 {
 
     struct ano_device_t *me = CONTAINER_OF(base,struct ano_device_t,base);
     me->frame_pst->ano_event_pst[frame].me = base;
     me->frame_pst->ano_event_pst[frame].frame = frame;
-    // event_subscribe(event_id_e, s_ano_event_callback,&me->frame_pst->ano_event_pst[frame],prio);
+    event_subscribe(event_id_e, s_ano_event_callback,&me->frame_pst->ano_event_pst[frame],prio);
     return 0;
 }
 const ano_ops_t ano_ops_st = {
@@ -150,7 +161,7 @@ const ano_ops_t ano_ops_st = {
     .get_send2check = s_get_send2check,
     .get_cmd = s_get_cmd,
     .get_par = s_get_par,
-    // .set_send_id = s_set_send_id,
+    .set_send_id = s_set_send_id,
     .set_send2check = s_send2check,
     .set_par = s_set_par,
     .register_callback = s_register_callback,

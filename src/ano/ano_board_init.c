@@ -1,11 +1,7 @@
 #include "ano_base.h"
 #include "ano_true.h"
 #include "uarts.h"
-#include "driver_registry.h"
 #include "zephyr/init.h"
-//*************************************************************************************************** */
-//可不可以通过注册回调的方式是上层调用给底层，而不是在board_init中进行包含其他的上层的函数呢？
-// *******************************************************************************************************
 
 static struct ano_device_t s_com_st;
 static uint8_t s_com_rxbuffer[FRAME_MAX_LENGTH];
@@ -25,4 +21,4 @@ int ano_board_init(void)
 
 }
 
-SYS_INIT(ano_board_init,APPLICATION,12);
+SYS_INIT(ano_board_init,APPLICATION,INIT_2);
