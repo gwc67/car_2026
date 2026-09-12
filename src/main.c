@@ -18,17 +18,16 @@
 #include "zephyr/kernel/thread.h"
 #include "zephyr/kernel/thread_stack.h"
 #include "zephyr/syscalls/kernel.h"
-#include "ano.h"
 
 K_MSGQ_DEFINE(uart_rx_queue, sizeof(struct uart_event_t), 30,4);
 
+static K_THREAD_STACK_DEFINE(s_statck_ano, 4096);      
 static K_THREAD_STACK_DEFINE(s_stack_rx,2048);
-static K_THREAD_STACK_DEFINE(s_statck_ano, 4096);      /* ano: 含 ano_send_data → s_frame_send (64B tx_buffer) */
-static K_THREAD_STACK_DEFINE(s_statck_dispatch, 4096); /* dispatch: 含 tree_queue_pop + dispatch_event + k_msgq_put 深层调用链 */
-static K_THREAD_STACK_DEFINE(s_stack_1ms_high, 4096); /* 1.5KB */
-static K_THREAD_STACK_DEFINE(s_stack_5ms_high, 4096); /* 1.5KB */
-static K_THREAD_STACK_DEFINE(s_stack_10ms, 4096); /* 1.5KB */
-static K_THREAD_STACK_DEFINE(s_stack_5ms_low,4096); /* 1.5KB */
+static K_THREAD_STACK_DEFINE(s_statck_dispatch, 4096); 
+static K_THREAD_STACK_DEFINE(s_stack_1ms_high, 4096); 
+static K_THREAD_STACK_DEFINE(s_stack_5ms_high, 4096); 
+static K_THREAD_STACK_DEFINE(s_stack_10ms, 4096); 
+static K_THREAD_STACK_DEFINE(s_stack_5ms_low,4096);
 
 
 static struct k_thread s_thread_ano;
@@ -50,7 +49,6 @@ static void s_task_1ms_high(void *p1,void *p2,void *p3)
 {
 	while (1) {
         k_sem_take(&tim5_sem, K_FOREVER);
-        // uart_rx_analyze(g_uart_computer);
         car_2026_step0();
         motor_set(g_motor_a_pst, car_2026_Y.pwm_a);
         motor_set(g_motor_b_pst, car_2026_Y.pwm_b);
@@ -67,13 +65,10 @@ void s_task_5ms_high(void *p1,void *p2,void *p3 )
         struct encoder_data_t motor_b;
         encoder_get_data(g_encoder_a_pst, &motor_a);
         encoder_get_data(g_encoder_b_pst, &motor_b);
-
-        
         car_2026_U.spd_a = motor_a.rpm_f;
         car_2026_U.spd_b = motor_b.rpm_f;
+
         car_2026_step1();
-
-
         k_sem_give(&uart_print_sem);
         k_sleep(K_MSEC(4));
     }
@@ -139,9 +134,6 @@ void s_task_10ms(void* p1,void* p2,void *p3)
     for (;;) {
 
         car_2026_step2();
-        // ano_data_setWts(g_com_ano, 0x01);
-        // struct ano_event_t test = {g_com_ano,0x01};
-        // k_msgq_put(&ano_tx_queue,&test, K_NO_WAIT);
         k_sleep(K_MSEC(9));
     }
 }

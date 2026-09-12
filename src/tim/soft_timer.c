@@ -72,4 +72,4 @@ static int soft_timer_init(void)
     return 0;
 }
 
-// SYS_INIT(soft_timer_init, APPLICATION, INIT_3);
+SYS_INIT(soft_timer_init, APPLICATION, INIT_3);
