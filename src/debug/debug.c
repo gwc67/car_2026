@@ -77,4 +77,4 @@ int debug_init(void)
     return uart_register_callback(g_uart_computer, debug_par_check,NULL);
 }
 
-// SYS_INIT(debug_init, APPLICATION, 13);
+SYS_INIT(debug_init, APPLICATION, 13);

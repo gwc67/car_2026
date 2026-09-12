@@ -6,7 +6,7 @@
 #include "menu/menu.h"
 #include "motor/tb6612.h"
 #include "simulink/ARMCortex-M/car_2026/car_2026.h"
-#include "uart/uart_base.h"
+#include "uarts.h"
 #include "value_to_str.h"
 #include "zephyr/kernel.h"
 #include <stddef.h>
@@ -113,17 +113,10 @@ void s_task_5ms_low(void* p1,void* p2,void *p3)
     static char s_telemetry_buf[TELEMETRY_BUF_SIZE];
     while (1) {
         k_sem_take(&uart_print_sem, K_FOREVER);
-        // k_msgq_get(&uart_rx_queue,&uart_event, K_FOREVER);
-        // uart_rx_analyze(uart_event.base);
-        
         menu_refresh();
-        // struct ano_event_t test = {g_com_ano,0x01};
-        // k_msgq_put(&ano_tx_queue,&test, K_NO_WAIT);
-        // format_telemetry(s_telemetry_buf, sizeof(s_telemetry_buf));
-        // uart_transmit(g_uart_computer, s_telemetry_buf, strlen(s_telemetry_buf));
+        format_telemetry(s_telemetry_buf, sizeof(s_telemetry_buf));
+        uart_transmit(g_uart_computer, s_telemetry_buf, strlen(s_telemetry_buf));
         menu_task_v();
-        // k_sleep(K_MSEC(1000));
-
     }
 }
 
@@ -132,7 +125,6 @@ void s_task_10ms(void* p1,void* p2,void *p3)
 {
 
     for (;;) {
-
         car_2026_step2();
         k_sleep(K_MSEC(9));
     }

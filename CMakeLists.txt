@@ -26,6 +26,7 @@ target_sources(app PRIVATE
     src/ano/ano_base.c
     src/ano/ano_board_init.c
     src/ano/ano_device/ano_device_com.c
+    src/ano/ano_device/ano_device_k230.c
     src/uart/uart_base.c
     src/uart/uart_true.c
     src/uart/uart_board_init.c
