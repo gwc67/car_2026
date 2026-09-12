@@ -51,6 +51,7 @@ static void  dispatch_line(char* line_pc)
     if (strncmp(line_pc, "turn_tar:", 8) == 0) {
         car_2026_U.tar_spd_a = values_pf[1];
         car_2026_U.tar_spd_b = values_pf[1];
+        uart_transmit(g_uart_computer, "OK\r\n", 4);
     }
     else if (strncmp(line_pc, "spd_kp:", 7) == 0) {
         SPD_KP = values_pf[0];

@@ -21,7 +21,8 @@
 #include "zephyr/kernel/thread.h"
 #include "zephyr/syscalls/kernel.h"
 #include "ano.h"
-// K_MSGQ_DEFINE(uart_rx_quesue, sizeof(struct uart_event_t), 30,4);
+K_MSGQ_DEFINE(uart_rx_queue, sizeof(struct uart_event_t), 30,4);
+
 
 
 static K_THREAD_STACK_DEFINE(s_statck_dispatch, 4096); /* dispatch: 含 tree_queue_pop + dispatch_event + k_msgq_put 深层调用链 */
@@ -30,6 +31,8 @@ static K_THREAD_STACK_DEFINE(s_stack_5ms_high, 4096); /* 1.5KB */
 static K_THREAD_STACK_DEFINE(s_stack_10ms, 4096); /* 1.5KB */
 static K_THREAD_STACK_DEFINE(s_statck_ano, 4096);      /* ano: 含 ano_send_data → s_frame_send (64B tx_buffer) */
 static K_THREAD_STACK_DEFINE(s_stack_5ms_low,4096); /* 1.5KB */
+
+
 
 static struct k_thread s_thread_1ms_high;
 static struct k_thread s_thread_5ms_high;
@@ -49,7 +52,7 @@ static void s_task_1ms_high(void *p1,void *p2,void *p3)
 {
 	while (1) {
         k_sem_take(&tim5_sem, K_FOREVER);
-        uart_rx_analyze(g_uart_computer);
+        // uart_rx_analyze(g_uart_computer);
         car_2026_step0();
         motor_set(g_motor_a_pst, car_2026_Y.pwm_a);
         motor_set(g_motor_b_pst, car_2026_Y.pwm_b);
@@ -115,15 +118,19 @@ static void menu_refresh(void)
 void s_task_5ms_low(void* p1,void* p2,void *p3)
 {
     static char s_telemetry_buf[TELEMETRY_BUF_SIZE];
+    struct uart_event_t uart_event;
     while (1) {
         // k_sem_take(&uart_print_sem, K_FOREVER);
-        menu_refresh();
-        struct ano_event_t test = {g_com_ano,0x01};
-        k_msgq_put(&ano_tx_queue,&test, K_NO_WAIT);
+        k_msgq_get(&uart_rx_queue,&uart_event, K_FOREVER);
+        uart_rx_analyze(uart_event.base);
+        
+        // menu_refresh();
+        // struct ano_event_t test = {g_com_ano,0x01};
+        // k_msgq_put(&ano_tx_queue,&test, K_NO_WAIT);
         // format_telemetry(s_telemetry_buf, sizeof(s_telemetry_buf));
         // uart_transmit(g_uart_computer, s_telemetry_buf, strlen(s_telemetry_buf));
-        menu_task_v();
-        k_sleep(K_MSEC(1000));
+        // menu_task_v();
+        // k_sleep(K_MSEC(1000));
 
     }
 }
@@ -149,10 +156,10 @@ void s_task_dispatch(void* p1,void* p2,void *p3)
     {
         // struct ano_event_t test = {g_com_ano,0x01};
         // k_msgq_put(&ano_tx_queue,&test, K_NO_WAIT);
-        // tree_err_t ret = tree_queue_pop(tree,&evt, K_FOREVER);    
-        // if (ret == TREE_OK) {
-        //     dispatch_event(&evt);
-        // }
+        tree_err_t ret = tree_queue_pop(tree,&evt, K_FOREVER);    
+        if (ret == TREE_OK) {
+            dispatch_event(&evt);
+        }
         k_sleep(K_MSEC(1000));
     }
 }
