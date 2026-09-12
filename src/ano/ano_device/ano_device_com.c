@@ -96,7 +96,7 @@ static int s_ano_device_com_init(void)
         LOG_ERR("frame_fail_set");
         return ret;
     }
-    ret = ano_set_send_id(g_com_ano, 0x01,EVT_TIMER_500MS,1);
+    ret = ano_set_send_id(g_com_ano, 0x01,EVT_TIMER_10MS,1);
     if (ret) {
         LOG_ERR("frame_fail_set");
         return ret;

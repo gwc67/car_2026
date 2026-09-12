@@ -4,9 +4,9 @@
 #include "zephyr/kernel.h"
 #include "zephyr/toolchain.h"
 
-#define TIMER_10MS_PERIOD_MS (10U)
-#define TIMER_500MS_PERIOD_MS (500U)
-#define TIMER_1000MS_PERIOD_MS (1000U)
+#define TIMER_10MS_PERIOD_MS (9U)
+#define TIMER_500MS_PERIOD_MS (499U)
+#define TIMER_1000MS_PERIOD_MS (999U)
 
 static struct k_work_delayable s_work_10ms;
 static struct k_work_delayable s_work_500ms;
@@ -72,4 +72,4 @@ static int soft_timer_init(void)
     return 0;
 }
 
-SYS_INIT(soft_timer_init, APPLICATION, INIT_3);
+// SYS_INIT(soft_timer_init, APPLICATION, INIT_3);

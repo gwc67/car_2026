@@ -1,6 +1,5 @@
 #include "ano/ano_base.h"
 #include "double_tree/double_tree.h"
-#include "double_tree/prio_queue_zephyr.h"
 #include "encode.h"
 #include "euler.h"
 #include "menu/OLED_Menu.h"
@@ -8,9 +7,7 @@
 #include "motor/tb6612.h"
 #include "simulink/ARMCortex-M/car_2026/car_2026.h"
 #include "uart/uart_base.h"
-#include "uart/uarts.h"
 #include "value_to_str.h"
-#include "zephyr/drivers/counter.h"
 #include "zephyr/kernel.h"
 #include <stddef.h>
 #include <stdint.h>
@@ -21,6 +18,8 @@
 #include "zephyr/kernel/thread.h"
 #include "zephyr/kernel/thread_stack.h"
 #include "zephyr/syscalls/kernel.h"
+#include "ano.h"
+
 K_MSGQ_DEFINE(uart_rx_queue, sizeof(struct uart_event_t), 30,4);
 
 static K_THREAD_STACK_DEFINE(s_stack_rx,2048);
@@ -140,9 +139,10 @@ void s_task_10ms(void* p1,void* p2,void *p3)
     for (;;) {
 
         car_2026_step2();
+        // ano_data_setWts(g_com_ano, 0x01);
         // struct ano_event_t test = {g_com_ano,0x01};
-        // k_msgq_put(&anox_queue,&test, K_NO_WAIT);
-        k_sleep(K_MSEC(10));
+        // k_msgq_put(&ano_tx_queue,&test, K_NO_WAIT);
+        k_sleep(K_MSEC(9));
     }
 }
 
@@ -163,6 +163,7 @@ void s_task_dispatch(void* p1,void* p2,void *p3)
 void s_task_rx(void* p1,void* p2, void* p3)
 {
     struct uart_event_t uart_event;
+    for (; ; ) {
         k_msgq_get(&uart_rx_queue, &uart_event, K_FOREVER);
         if (uart_event.type_e == UART_EVENT_RX_DATA) {
             uart_rx_analyze(uart_event.base);
