@@ -20,7 +20,7 @@ typedef struct {
     int (*uart_rx_enable)(uart_base_t* me,uint32_t timeout);                       
     int (*uart_rx_analyze)(uart_base_t*me);
     int (*uart_register_callback)(uart_base_t* me,uart_user_cb_t callback,void* user_data);
-   //  int (*uart_tx_callback)(struct uart_base_t* base,enum uart_event_type_e event);
+    int (*uart_tx_callback)(struct uart_base_t* base,enum uart_event_type_e event);
 }uart_ops_t;
 
 struct uart_base_t {
